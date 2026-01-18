@@ -1,0 +1,2011 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-100">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Slink Admin Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      .scrollbar-thin::-webkit-scrollbar {
+        width: 6px;
+      }
+      .scrollbar-thin::-webkit-scrollbar-thumb {
+        background-color: rgba(148, 163, 184, 0.5);
+        border-radius: 9999px;
+      }
+
+      @media (max-width: 640px) {
+        .slink-table thead {
+          display: none;
+        }
+
+        .slink-table,
+        .slink-table tr,
+        .slink-table td {
+          display: block;
+          width: 100%;
+        }
+
+        .slink-table tbody {
+          display: grid;
+          width: 100%;
+          gap: 1.25rem;
+        }
+
+        .slink-table tr {
+          margin: 0;
+          border-radius: 1.5rem;
+          border: 1px solid rgb(226 232 240 / 0.75);
+          background: linear-gradient(135deg, rgb(248 250 252), rgb(255 255 255));
+          box-shadow: 0 20px 48px -22px rgb(15 23 42 / 0.55);
+          overflow: hidden;
+          position: relative;
+        }
+
+        .slink-table tr::before {
+          content: "";
+          position: absolute;
+          inset: 0 0 auto 0;
+          height: 3px;
+          background: linear-gradient(90deg, rgb(15 118 110), rgb(14 165 233));
+        }
+
+        .slink-table td {
+          padding: 1.05rem 1.25rem;
+          position: relative;
+        }
+
+        .slink-table td:not(:last-child) {
+          border-bottom: 1px solid rgb(226 232 240 / 0.85);
+        }
+
+        .slink-table td::before {
+          content: attr(data-label);
+          display: block;
+          margin-bottom: 0.35rem;
+          font-size: 0.7rem;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: rgb(100 116 139);
+        }
+
+        .slink-table td[data-label="Actions"] {
+          display: flex;
+          justify-content: flex-end;
+        }
+
+        .slink-table td[data-label="Actions"] button {
+          width: 100%;
+          max-width: 14rem;
+          margin-left: auto;
+        }
+
+        .slink-table-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+          padding: 0.35rem 0.65rem;
+          border-radius: 9999px;
+          background: rgba(15, 23, 42, 0.08);
+          color: rgb(71 85 105);
+          font-size: 0.7rem;
+          font-weight: 600;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+
+        .slink-table-chip svg {
+          width: 0.75rem;
+          height: 0.75rem;
+        }
+
+        .slink-table-empty td {
+          border: 1px dashed rgb(203 213 225);
+          border-radius: 1.5rem;
+          background: rgb(248 250 252);
+        }
+      }
+
+      .summary-card {
+        position: relative;
+        overflow: hidden;
+        padding: 1.75rem;
+        border-radius: 1.75rem;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: linear-gradient(145deg, rgba(248, 250, 252, 0.96), #ffffff);
+        box-shadow: 0 18px 32px -22px rgba(15, 23, 42, 0.25);
+        cursor: pointer;
+        transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        color: #0f172a;
+        --summary-card-accent: #6366f1;
+        --summary-card-value-color: #0f172a;
+      }
+
+      .summary-card[data-summary-card="registered"] {
+        --summary-card-accent: #6366f1;
+      }
+
+      .summary-card[data-summary-card="newSkill"] {
+        --summary-card-accent: #38bdf8;
+      }
+
+      .summary-card[data-summary-card="connected"] {
+        --summary-card-accent: #34d399;
+        --summary-card-value-color: #047857;
+      }
+
+      .summary-card[data-summary-card="pending"] {
+        --summary-card-accent: #f59e0b;
+        --summary-card-value-color: #b45309;
+      }
+
+      .summary-card::after {
+        content: "";
+        position: absolute;
+        inset: -50% -45% auto 30%;
+        height: 160%;
+        background: linear-gradient(135deg, rgba(148, 163, 184, 0.12), rgba(226, 232, 240, 0.04));
+        opacity: 0;
+        transform: translate3d(0, 14%, 0) scale(0.95);
+        transition: opacity 0.35s ease, transform 0.35s ease;
+      }
+
+      .summary-card:hover::after,
+      .summary-card:focus-visible::after,
+      .summary-card.summary-card--active::after {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+
+      .summary-card:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.3), 0 24px 44px -18px rgba(15, 23, 42, 0.55);
+      }
+
+      .summary-card:hover,
+      .summary-card:focus-visible {
+        background: linear-gradient(150deg, rgba(2, 6, 23, 0.95), rgba(15, 23, 42, 0.95) 55%, rgba(2, 132, 199, 0.22));
+        border-color: rgba(15, 23, 42, 0.55);
+        color: rgba(241, 245, 249, 0.95);
+        transform: translateY(-6px);
+        box-shadow: 0 26px 46px -20px rgba(15, 23, 42, 0.6);
+      }
+
+      .summary-card.summary-card--active {
+        background: linear-gradient(160deg, rgba(2, 6, 23, 0.96), rgba(15, 23, 42, 0.95) 55%, var(--summary-card-accent));
+        border-color: rgba(15, 23, 42, 0.75);
+        color: rgba(241, 245, 249, 0.96);
+        transform: translateY(-6px);
+        box-shadow: 0 28px 52px -18px rgba(15, 23, 42, 0.65);
+      }
+
+      .summary-card-label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: rgba(100, 116, 139, 0.9);
+        transition: color 0.3s ease;
+      }
+
+      .summary-card-value {
+        margin-top: 0.75rem;
+        font-size: clamp(1.9rem, 3vw, 2.5rem);
+        font-weight: 600;
+        line-height: 1.1;
+        color: var(--summary-card-value-color);
+        transition: color 0.3s ease;
+      }
+
+      .summary-card:hover .summary-card-label,
+      .summary-card:focus-visible .summary-card-label,
+      .summary-card.summary-card--active .summary-card-label {
+        color: rgba(241, 245, 249, 0.9);
+      }
+
+      .summary-card:hover .summary-card-value,
+      .summary-card:focus-visible .summary-card-value,
+      .summary-card.summary-card--active .summary-card-value {
+        color: var(--summary-card-accent);
+      }
+
+      .summary-card .summary-card-value[data-metric="connected"] {
+        color: #047857;
+      }
+
+      .summary-card .summary-card-value[data-metric="pending"] {
+        color: #b45309;
+      }
+
+      .summary-card:hover .summary-card-value[data-metric],
+      .summary-card:focus-visible .summary-card-value[data-metric],
+      .summary-card.summary-card--active .summary-card-value[data-metric] {
+        color: rgba(241, 245, 249, 0.96);
+      }
+    </style>
+  </head>
+  <body class="h-full text-slate-700">
+    <div class="relative flex min-h-screen flex-col overflow-hidden bg-slate-100 lg:flex-row">
+      <div
+        id="sidebar-overlay"
+        class="fixed inset-0 z-30 hidden bg-slate-900/40 backdrop-blur-sm lg:hidden"
+        aria-hidden="true"
+      ></div>
+      <aside
+        id="sidebar"
+        class="fixed inset-y-0 left-0 z-40 hidden w-72 -translate-x-full transform bg-white shadow-xl transition-transform duration-300 ease-out lg:relative lg:flex lg:w-72 lg:translate-x-0 lg:flex-col lg:border-r lg:border-slate-200 lg:bg-white lg:shadow-sm lg:transition-none"
+        aria-label="Primary"
+      >
+        <div class="relative px-6 pt-8 pb-6 border-b border-slate-200">
+          <button
+            id="mobile-nav-close"
+            class="absolute right-4 top-5 inline-flex items-center justify-center rounded-full border border-slate-200 bg-white p-2 text-slate-500 shadow-sm transition hover:border-slate-300 hover:text-slate-900 lg:hidden"
+            aria-label="Close navigation"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18 18 6m0 12L6 6" />
+            </svg>
+          </button>
+          <div class="flex items-center gap-3">
+            <img
+              src="./img/slink.png"
+              alt="Slink logo"
+              class="h-12 w-12 rounded-2xl object-cover shadow-sm"
+            />
+            <div>
+              <p class="text-sm font-medium uppercase tracking-widest text-slate-500">
+                Admin
+              </p>
+              <h1 class="text-xl font-semibold text-slate-900">Slink Control</h1>
+            </div>
+          </div>
+        </div>
+        <nav class="flex-1 overflow-y-auto px-4 pt-6 pb-10 scrollbar-thin">
+          <div class="space-y-2">
+            <button class="nav-item" data-filter="registered">
+              <span>Registered</span>
+              <span class="badge" data-badge-count="registered">0</span>
+            </button>
+            <button class="nav-item" data-filter="new-skill">
+              <span>New-Skill</span>
+              <span class="badge" data-badge-count="newSkill">0</span>
+            </button>
+            <button class="nav-item" data-filter="connected-skill">
+              <span>Connected Skill</span>
+              <span class="badge" data-badge-count="connected">0</span>
+            </button>
+            <button class="nav-item" data-filter="pending-skill">
+              <span>Pending Skill</span>
+              <span class="badge" data-badge-count="pending">0</span>
+            </button>
+            <button class="nav-item" data-filter="suggested-skill">
+              <span>Suggested Skill</span>
+              <span class="badge" data-badge-count="suggested">0</span>
+            </button>
+          </div>
+        </nav>
+        <div class="px-6 py-5 border-t border-slate-200">
+          <div class="rounded-2xl bg-slate-900/90 p-5 text-white">
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-200">
+              Insights
+            </h2>
+            <p class="mt-3 text-sm text-slate-100">
+              Monitor skills lifecycle, approvals, and AI suggestions in a single view.
+            </p>
+          </div>
+        </div>
+      </aside>
+
+      <main class="flex-1 overflow-y-auto scrollbar-thin">
+        <div class="min-h-full px-4 py-6 sm:px-6 lg:px-10 lg:py-10">
+          <header class="mb-8 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p class="text-sm font-semibold uppercase tracking-widest text-slate-500">
+                Overview
+              </p>
+              <h2 class="text-3xl font-semibold text-slate-900">
+                Skills Intelligence Dashboard
+              </h2>
+            </div>
+            <div class="flex items-center gap-3">
+              <button
+                id="mobile-nav-open"
+                class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white p-2 text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900 lg:hidden"
+                aria-label="Open navigation"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <div class="hidden items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm sm:flex">
+                <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                <span class="text-sm text-slate-500">Realtime sync active</span>
+              </div>
+            </div>
+          </header>
+
+          <section class="space-y-6">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <div
+                class="summary-card"
+                data-summary-card="registered"
+                role="button"
+                tabindex="0"
+                aria-pressed="false"
+              >
+                <p class="summary-card-label">
+                  Total Registered
+                </p>
+                <p class="summary-card-value" data-summary-value data-metric="registered">0</p>
+              </div>
+              <div
+                class="summary-card"
+                data-summary-card="newSkill"
+                role="button"
+                tabindex="0"
+                aria-pressed="false"
+              >
+                <p class="summary-card-label">
+                  New Skill Updates
+                </p>
+                <p class="summary-card-value" data-summary-value data-metric="newSkill">0</p>
+              </div>
+              <div
+                class="summary-card"
+                data-summary-card="connected"
+                role="button"
+                tabindex="0"
+                aria-pressed="false"
+              >
+                <p class="summary-card-label">
+                  Connected Skills
+                </p>
+                <p class="summary-card-value" data-summary-value data-metric="connected">0</p>
+              </div>
+              <div
+                class="summary-card"
+                data-summary-card="pending"
+                role="button"
+                tabindex="0"
+                aria-pressed="false"
+              >
+                <p class="summary-card-label">
+                  Pending Reviews
+                </p>
+                <p class="summary-card-value" data-summary-value data-metric="pending">0</p>
+              </div>
+            </div>
+
+            <div
+              id="registry-section"
+              class="rounded-3xl border border-slate-200 bg-white shadow-lg shadow-slate-900/5"
+            >
+              <div
+                class="flex flex-col gap-6 border-b border-slate-100 px-6 py-6 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <h3 class="text-xl font-semibold text-slate-900">
+                    Workforce Skills Registry
+                  </h3>
+                  <p class="text-sm text-slate-500">
+                    Filter by lifecycle state to verify, connect, or decline skill submissions.
+                  </p>
+                </div>
+                <div class="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                  <div class="relative w-full sm:w-auto">
+                    <input
+                      type="text"
+                      placeholder="Search people or skills"
+                      class="w-full rounded-full border border-slate-200 bg-slate-50/60 py-2 pl-10 pr-4 text-sm text-slate-600 outline-none transition focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-200 md:w-64"
+                      id="search-input"
+                    />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="pointer-events-none absolute left-3 top-2.5 h-5 w-5 text-slate-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.5"
+                        d="M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"
+                      />
+                    </svg>
+                  </div>
+                  <button
+                    class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
+                    id="reset-filters"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+
+              <div class="overflow-x-auto">
+                <table class="slink-table min-w-full divide-y divide-slate-200" id="people-table">
+                  <thead class="bg-slate-50">
+                    <tr>
+                      <th
+                        class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
+                      >
+                        Name
+                      </th>
+                      <th
+                        class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
+                      >
+                        Current Skills
+                      </th>
+                      <th
+                        class="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500"
+                      >
+                        Status
+                      </th>
+                      <th
+                        class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500"
+                      >
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100" id="table-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <div
+      id="person-detail"
+      class="fixed inset-0 z-50 hidden"
+      aria-modal="true"
+      role="dialog"
+    >
+      <div
+        id="detail-overlay"
+        class="absolute inset-0 bg-slate-900/40 opacity-0 transition-opacity duration-300"
+        data-close-detail
+      ></div>
+      <aside
+        id="detail-panel"
+        class="absolute inset-y-0 right-0 flex h-full w-full max-w-xl translate-x-full transform flex-col bg-white shadow-2xl transition-transform duration-300 md:max-w-lg lg:max-w-xl"
+      >
+        <header class="flex items-start justify-between border-b border-slate-200 px-6 py-6">
+          <div>
+            <span
+              id="detail-status"
+              class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-500"
+            ></span>
+            <h2 id="detail-name" class="mt-3 text-2xl font-semibold text-slate-900"></h2>
+            <div class="mt-2 flex flex-wrap gap-3 text-sm text-slate-500">
+              <span id="detail-email" class="flex items-center gap-2"></span>
+              <span id="detail-location" class="flex items-center gap-2"></span>
+              <span id="detail-created" class="flex items-center gap-2"></span>
+            </div>
+          </div>
+          <button
+            id="detail-close"
+            class="rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
+            aria-label="Close detail panel"
+            data-close-detail
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18 18 6m0 12L6 6" />
+            </svg>
+          </button>
+        </header>
+        <div class="flex-1 space-y-8 overflow-y-auto px-6 py-6">
+          <section>
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              Profile
+            </h3>
+            <dl class="mt-4 space-y-3 text-sm text-slate-600">
+              <div class="flex items-start gap-3">
+                <dt class="w-32 text-slate-400">Email</dt>
+                <dd id="detail-email-value" class="flex-1 break-words"></dd>
+              </div>
+              <div class="flex items-start gap-3">
+                <dt class="w-32 text-slate-400">Location</dt>
+                <dd id="detail-location-value" class="flex-1 break-words"></dd>
+              </div>
+              <div class="flex items-start gap-3">
+                <dt class="w-32 text-slate-400">Source</dt>
+                <dd id="detail-source" class="flex-1 break-words"></dd>
+              </div>
+              <div class="flex items-start gap-3">
+                <dt class="w-32 text-slate-400">Consent</dt>
+                <dd id="detail-consent" class="flex-1 break-words"></dd>
+              </div>
+            </dl>
+          </section>
+          <section>
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              Skills to Learn
+            </h3>
+            <div id="detail-learn-skill" class="mt-4 flex flex-wrap gap-3"></div>
+          </section>
+          <section>
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              Skills to Teach
+            </h3>
+            <div id="detail-teach-skills" class="mt-4 flex flex-wrap gap-3"></div>
+          </section>
+          <section>
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                Suggested Tutors
+              </h3>
+              <span id="detail-match-count" class="text-xs font-medium text-slate-400"></span>
+            </div>
+            <div id="detail-tutor-suggestions" class="mt-4 space-y-3"></div>
+          </section>
+          <section
+            id="detail-selected-tutor"
+            class="hidden rounded-2xl border border-slate-200 bg-white/60 px-4 py-4"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p id="detail-selected-tutor-name" class="text-sm font-semibold text-slate-900"></p>
+                <p class="text-xs text-slate-400">Selected tutor contact details</p>
+              </div>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4 text-emerald-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+            </div>
+            <dl class="mt-4 space-y-2 text-xs text-slate-600">
+              <div class="flex items-start gap-2">
+                <dt class="w-16 text-slate-400">Email</dt>
+                <dd id="detail-selected-tutor-email" class="flex-1 break-words"></dd>
+              </div>
+              <div class="flex items-start gap-2">
+                <dt class="w-16 text-slate-400">Phone</dt>
+                <dd id="detail-selected-tutor-phone" class="flex-1 break-words"></dd>
+              </div>
+            </dl>
+            <p id="detail-selected-tutor-hint" class="mt-3 text-xs text-slate-400"></p>
+          </section>
+          <section id="detail-actions" class="border-t border-slate-100 pt-6">
+            <div class="flex flex-col gap-3">
+              <button
+                id="detail-connect"
+                class="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                disabled
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.25 7.5h7.5m-7.5 4.5h3" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 5.25a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 5.25v13.5a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18.75V5.25Z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7.5 16.5l3 3 6-7.5" />
+                </svg>
+                Mark as Connected
+              </button>
+              <button
+                id="detail-decline"
+                class="inline-flex items-center justify-center gap-2 rounded-full border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:border-slate-100 disabled:bg-slate-50 disabled:text-slate-300"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18 18 6m0 12L6 6" />
+                </svg>
+                <span id="detail-decline-label">Keep Pending</span>
+              </button>
+            </div>
+          </section>
+        </div>
+      </aside>
+    </div>
+
+    <div
+      id="person-detail"
+      class="fixed inset-0 z-50 hidden"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        id="detail-overlay"
+        class="absolute inset-0 bg-slate-900/40 opacity-0 transition-opacity duration-300"
+        data-close-detail
+      ></div>
+      <aside
+        id="detail-panel"
+        class="absolute inset-y-0 right-0 flex h-full w-full max-w-xl translate-x-full transform flex-col bg-white shadow-2xl transition-transform duration-300"
+      >
+        <header class="flex items-start justify-between border-b border-slate-200 px-6 py-6">
+          <div>
+            <span
+              id="detail-status"
+              class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide"
+            ></span>
+            <h2 id="detail-name" class="mt-3 text-2xl font-semibold text-slate-900"></h2>
+            <div class="mt-3 flex flex-wrap gap-3 text-sm text-slate-500">
+              <span id="detail-email" class="flex items-center gap-2"></span>
+              <span id="detail-location" class="flex items-center gap-2"></span>
+              <span id="detail-created" class="flex items-center gap-2"></span>
+            </div>
+          </div>
+          <button
+            id="detail-close"
+            class="rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
+            aria-label="Close detail panel"
+            data-close-detail
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18 18 6m0 12L6 6" />
+            </svg>
+          </button>
+        </header>
+        <div class="flex-1 space-y-8 overflow-y-auto px-6 py-6">
+          <section>
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Profile</h3>
+            <dl class="mt-4 space-y-3 text-sm text-slate-600">
+              <div class="flex items-start gap-3">
+                <dt class="w-32 text-slate-400">Email</dt>
+                <dd id="detail-email-value" class="flex-1 break-words"></dd>
+              </div>
+              <div class="flex items-start gap-3">
+                <dt class="w-32 text-slate-400">Location</dt>
+                <dd id="detail-location-value" class="flex-1 break-words"></dd>
+              </div>
+              <div class="flex items-start gap-3">
+                <dt class="w-32 text-slate-400">Source</dt>
+                <dd id="detail-source" class="flex-1 break-words"></dd>
+              </div>
+              <div class="flex items-start gap-3">
+                <dt class="w-32 text-slate-400">Consent</dt>
+                <dd id="detail-consent" class="flex-1 break-words"></dd>
+              </div>
+            </dl>
+          </section>
+          <section>
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Skills to Learn</h3>
+            <div id="detail-learn-skill" class="mt-4 flex flex-wrap gap-3"></div>
+          </section>
+          <section>
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Skills to Teach</h3>
+            <div id="detail-teach-skills" class="mt-4 flex flex-wrap gap-3"></div>
+          </section>
+          <section>
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Suggested Tutors</h3>
+              <span id="detail-match-count" class="text-xs font-medium text-slate-400"></span>
+            </div>
+            <div id="detail-tutor-suggestions" class="mt-4 space-y-3"></div>
+          </section>
+        </div>
+      </aside>
+    </div>
+
+    <div
+      id="notification-root"
+      class="pointer-events-none fixed inset-x-0 top-4 z-[70] flex justify-center px-4"
+    ></div>
+
+    <div
+      id="remove-confirm"
+      class="fixed inset-0 z-[65] hidden"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        id="remove-confirm-overlay"
+        class="absolute inset-0 bg-slate-900/40 opacity-0 transition-opacity duration-200"
+        data-remove-dismiss
+      ></div>
+      <div
+        id="remove-confirm-dialog"
+        class="absolute inset-0 flex items-center justify-center px-4 py-6 opacity-0 transition-opacity duration-200"
+      >
+        <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl shadow-slate-900/25">
+          <h3 class="text-lg font-semibold text-slate-900">Delete registration</h3>
+          <p class="mt-2 text-sm text-slate-600">
+            Are you sure you want to remove
+            <span id="remove-confirm-label" class="font-semibold text-slate-900"></span>?
+            This action will permanently delete their data from the database.
+          </p>
+
+          <div class="mt-5 space-y-4">
+            <label class="block text-sm font-medium text-slate-500">
+              Registration name
+              <input
+                id="remove-confirm-name"
+                type="text"
+                readonly
+                class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600"
+              />
+            </label>
+            <label class="block text-sm font-medium text-slate-500">
+              Type the name to confirm deletion
+              <input
+                id="remove-confirm-input"
+                type="text"
+                placeholder="Start typing the name exactly"
+                autocomplete="off"
+                class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200"
+              />
+            </label>
+          </div>
+
+          <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <button
+              id="remove-confirm-cancel"
+              type="button"
+              class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+            >
+              Cancel
+            </button>
+            <button
+              id="remove-confirm-submit"
+              type="button"
+              class="inline-flex items-center justify-center rounded-full bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-red-300"
+              disabled
+            >
+              Delete person
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        onSnapshot,
+        deleteDoc,
+        doc,
+        updateDoc,
+        addDoc,
+        serverTimestamp
+      } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+      import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-analytics.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyBHIWxAFZz9gBEJ12XXF6QK53sY5BEfrVs",
+        authDomain: "slink-website.firebaseapp.com",
+        projectId: "slink-website",
+        storageBucket: "slink-website.firebasestorage.app",
+        messagingSenderId: "876458436291",
+        appId: "1:876458436291:web:0aff5515ed8b5fdc156476",
+        measurementId: "G-KPQSCM484L"
+      };
+
+      const app = initializeApp(firebaseConfig);
+
+      if (typeof window !== "undefined" && "location" in window) {
+        try {
+          getAnalytics(app);
+        } catch (error) {
+          console.warn("Analytics not initialised", error);
+        }
+      }
+
+      const db = getFirestore(app);
+      const registrationsRef = collection(db, "registrations");
+      const emailQueueRef = collection(db, "mailQueue");
+
+      const SENDER_EMAIL = "skillbank0@gmail.com";
+
+      const NAV_BASE_CLASSES = [
+        "nav-item",
+        "flex",
+        "w-full",
+        "items-center",
+        "justify-between",
+        "rounded-2xl",
+        "border",
+        "px-5",
+        "py-3.5",
+        "text-sm",
+        "font-medium",
+        "transition",
+        "hover:border-slate-200",
+        "hover:bg-slate-100",
+        "hover:text-slate-900",
+        "focus:outline-none"
+      ];
+
+      const NAV_ACTIVE_CLASSES = [
+        "border-slate-900",
+        "bg-slate-900",
+        "text-white",
+        "shadow-lg",
+        "shadow-slate-900/10"
+      ];
+
+      const NAV_INACTIVE_CLASSES = [
+        "border-transparent",
+        "bg-slate-50",
+        "text-slate-600"
+      ];
+
+      const FILTERS = {
+        registered: () => true,
+        "new-skill": (person) => person.flags.newSkill,
+        "connected-skill": (person) => person.status === "connected",
+        "pending-skill": (person) => person.status === "pending",
+        "suggested-skill": (person) => person.flags.suggested
+      };
+
+      const SUMMARY_TO_FILTER = {
+        registered: "registered",
+        newSkill: "new-skill",
+        connected: "connected-skill",
+        pending: "pending-skill"
+      };
+
+      const state = {
+        people: [],
+        activeFilter: "registered",
+        searchQuery: "",
+        unsubscribe: null,
+        selectedPersonId: null,
+        selectedPerson: null,
+        selectedTutorId: null,
+        selectedTutor: null,
+        lastNotifiedTutorId: null
+      };
+
+      const navButtons = document.querySelectorAll(".nav-item");
+      const summaryCards = document.querySelectorAll("[data-summary-card]");
+      const registrySection = document.getElementById("registry-section");
+      const tableBody = document.getElementById("table-body");
+      const searchInput = document.getElementById("search-input");
+      const resetButton = document.getElementById("reset-filters");
+      const notificationRoot = document.getElementById("notification-root");
+      const removeConfirmRoot = document.getElementById("remove-confirm");
+      const removeConfirmOverlay = document.getElementById("remove-confirm-overlay");
+      const removeConfirmDialog = document.getElementById("remove-confirm-dialog");
+      const removeConfirmLabel = document.getElementById("remove-confirm-label");
+      const removeConfirmName = document.getElementById("remove-confirm-name");
+      const removeConfirmInput = document.getElementById("remove-confirm-input");
+      const removeConfirmCancel = document.getElementById("remove-confirm-cancel");
+      const removeConfirmSubmit = document.getElementById("remove-confirm-submit");
+      const removeConfirmDefaultLabel = removeConfirmSubmit
+        ? removeConfirmSubmit.textContent.trim() || "Delete person"
+        : "Delete person";
+
+      const sidebar = document.getElementById("sidebar");
+      const sidebarOverlay = document.getElementById("sidebar-overlay");
+      const mobileNavOpen = document.getElementById("mobile-nav-open");
+      const mobileNavClose = document.getElementById("mobile-nav-close");
+
+      const detailRoot = document.getElementById("person-detail");
+      const detailOverlay = document.getElementById("detail-overlay");
+      const detailPanel = document.getElementById("detail-panel");
+      const detailStatus = document.getElementById("detail-status");
+      const detailName = document.getElementById("detail-name");
+      const detailEmail = document.getElementById("detail-email");
+      const detailLocation = document.getElementById("detail-location");
+      const detailCreated = document.getElementById("detail-created");
+      const detailEmailValue = document.getElementById("detail-email-value");
+      const detailLocationValue = document.getElementById("detail-location-value");
+      const detailSource = document.getElementById("detail-source");
+      const detailConsent = document.getElementById("detail-consent");
+      const detailLearn = document.getElementById("detail-learn-skill");
+      const detailTeach = document.getElementById("detail-teach-skills");
+      const detailTutorSuggestions = document.getElementById("detail-tutor-suggestions");
+      const detailMatchCount = document.getElementById("detail-match-count");
+      const detailSelectedTutorSection = document.getElementById("detail-selected-tutor");
+      const detailSelectedTutorName = document.getElementById("detail-selected-tutor-name");
+      const detailSelectedTutorEmail = document.getElementById("detail-selected-tutor-email");
+      const detailSelectedTutorPhone = document.getElementById("detail-selected-tutor-phone");
+      const detailSelectedTutorHint = document.getElementById("detail-selected-tutor-hint");
+      const connectButton = document.getElementById("detail-connect");
+      const declineButton = document.getElementById("detail-decline");
+      const declineLabel = document.getElementById("detail-decline-label");
+
+      let detailCloseButtons = [];
+      let removeConfirmState = {
+        personId: null,
+        personName: ""
+      };
+
+      const body = document.body;
+
+      function openSidebar() {
+        if (!sidebar) return;
+
+        if (window.innerWidth >= 1024) {
+          sidebar.classList.remove("hidden", "-translate-x-full");
+          if (sidebarOverlay) sidebarOverlay.classList.add("hidden");
+          return;
+        }
+
+        sidebar.classList.remove("hidden");
+        if (sidebarOverlay) sidebarOverlay.classList.remove("hidden");
+
+        requestAnimationFrame(() => {
+          sidebar.classList.remove("-translate-x-full");
+        });
+      }
+
+      function closeSidebar({ immediate = false } = {}) {
+        if (!sidebar) return;
+
+        if (window.innerWidth >= 1024) {
+          sidebar.classList.remove("hidden", "-translate-x-full");
+          if (sidebarOverlay) sidebarOverlay.classList.add("hidden");
+          return;
+        }
+
+        sidebar.classList.add("-translate-x-full");
+        if (sidebarOverlay) sidebarOverlay.classList.add("hidden");
+
+        const hide = () => sidebar.classList.add("hidden");
+        if (immediate) {
+          hide();
+        } else {
+          setTimeout(hide, 250);
+        }
+      }
+
+      function syncSidebarToViewport() {
+        if (!sidebar) return;
+
+        if (window.innerWidth >= 1024) {
+          sidebar.classList.remove("hidden", "-translate-x-full");
+          if (sidebarOverlay) sidebarOverlay.classList.add("hidden");
+        } else {
+          closeSidebar({ immediate: true });
+        }
+      }
+
+      function parseCreatedAt(value) {
+        if (!value) return "";
+
+        if (typeof value === "string") {
+          const timestamp = Date.parse(value);
+          if (!Number.isNaN(timestamp)) {
+            return new Intl.DateTimeFormat("en-GB", {
+              day: "numeric",
+              month: "long",
+              year: "numeric"
+            }).format(new Date(timestamp));
+          }
+          return value;
+        }
+
+        const date = typeof value.toDate === "function" ? value.toDate() : new Date(value);
+        if (Number.isNaN(date.getTime())) return "";
+
+        return new Intl.DateTimeFormat("en-GB", {
+          day: "numeric",
+          month: "long",
+          year: "numeric"
+        }).format(date);
+      }
+
+      function formatInteger(value) {
+        return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(
+          typeof value === "number" && Number.isFinite(value) ? value : 0
+        );
+      }
+
+      function showToast(message, { tone = "success", timeout = 4000 } = {}) {
+        if (!notificationRoot) return;
+
+        const toneClasses =
+          tone === "error"
+            ? "bg-red-600 text-white"
+            : tone === "warning"
+            ? "bg-amber-500 text-slate-900"
+            : "bg-emerald-600 text-white";
+
+        const toast = document.createElement("div");
+        toast.className = `pointer-events-auto inline-flex items-center gap-3 rounded-full px-5 py-3 text-sm font-medium shadow-lg shadow-slate-900/20 transition-opacity duration-300 ease-out ${toneClasses}`;
+        toast.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3.75m0 3.75h.007v.007H12v-.007zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>${message}</span>
+        `;
+
+        notificationRoot.appendChild(toast);
+
+        requestAnimationFrame(() => {
+          toast.classList.remove("opacity-0");
+        });
+
+        setTimeout(() => {
+          toast.classList.add("opacity-0");
+          setTimeout(() => toast.remove(), 300);
+        }, timeout);
+      }
+
+      function escapeCsv(value) {
+        if (value == null) return "";
+        const text = String(value).replace(/"/g, '""');
+        return /[",\n]/.test(text) ? `"${text}"` : text;
+      }
+
+      function buildPeopleCsv(people) {
+        const header = [
+          "Name",
+          "Email",
+          "Phone",
+          "Location",
+          "Status",
+          "Registered",
+          "Teach Skills",
+          "Learn Skills",
+          "Source"
+        ];
+
+        const rows = people.map((person) =>
+          [
+            person.name,
+            person.email,
+            person.phone,
+            person.location,
+            person.status,
+            person.createdAtLabel,
+            person.teachSkills.join("; "),
+            person.learnSkills.join("; "),
+            person.source
+          ].map(escapeCsv).join(",")
+        );
+
+        return [header.join(","), ...rows].join("\r\n");
+      }
+
+      function hydratePerson(docSnap) {
+        const data = docSnap.data() ?? {};
+        const rawStatus = String(data.status ?? "").toLowerCase();
+        const normalizedStatus = ["connected", "verified"].includes(rawStatus)
+          ? "connected"
+          : "pending";
+
+        const teachSkills = Array.isArray(data.teachSkills)
+          ? data.teachSkills.filter(Boolean)
+          : [];
+        const learnSkills = data.selectedSkill ? [data.selectedSkill] : [];
+
+        const skills = [...new Set([...teachSkills, ...learnSkills])];
+
+        return {
+          id: docSnap.id,
+          name: data.fullName ?? "Unknown registrant",
+          email: data.email ?? "",
+          phone: data.phone ?? data.phoneNumber ?? data.contactNumber ?? "",
+          location: data.location ?? "",
+          createdAtLabel: parseCreatedAt(data.createdAt),
+          createdAtValue: (() => {
+            if (!data.createdAt) return 0;
+            if (typeof data.createdAt === "string") {
+              const timestamp = Date.parse(data.createdAt);
+              return Number.isNaN(timestamp) ? 0 : timestamp;
+            }
+            const date = typeof data.createdAt.toDate === "function"
+              ? data.createdAt.toDate()
+              : new Date(data.createdAt);
+            return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+          })(),
+          status: normalizedStatus,
+          skills,
+          teachSkills,
+          learnSkills,
+          flags: {
+            newSkill: data.source === "client-submission",
+            suggested: data.source === "ai-suggestion"
+          },
+          consent: typeof data.consent === "boolean" ? data.consent : null,
+          source: data.source ?? ""
+        };
+      }
+
+      function applyFilter(data) {
+        const filterFn = FILTERS[state.activeFilter];
+        return data.filter(filterFn);
+      }
+
+      function applySearch(data) {
+        const query = state.searchQuery.trim().toLowerCase();
+        if (!query) return data;
+
+        return data.filter((person) => {
+          const matchesName = person.name.toLowerCase().includes(query);
+          const matchesSkill = person.skills.some((skill) =>
+            skill.toLowerCase().includes(query)
+          );
+          const matchesEmail = person.email.toLowerCase().includes(query);
+          const matchesLocation = person.location.toLowerCase().includes(query);
+          return matchesName || matchesSkill || matchesEmail || matchesLocation;
+        });
+      }
+
+      function getStatusPillClasses(status) {
+        return status === "connected"
+          ? "inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700"
+          : "inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700";
+      }
+
+      function renderTable() {
+        const filtered = applySearch(applyFilter(state.people));
+
+        if (!filtered.length) {
+          tableBody.innerHTML = `
+            <tr class="slink-table-empty">
+              <td data-label="No Records" colspan="4" class="px-6 py-16 text-center text-sm text-slate-400">
+                No records match the current filters. Adjust the criteria to continue monitoring skills.
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tableBody.innerHTML = filtered
+          .map((person) => {
+            const statusIcon =
+              person.status === "connected"
+                ? "<span class=\"h-2 w-2 rounded-full bg-emerald-500\"></span>"
+                : "<span class=\"h-2 w-2 rounded-full bg-amber-500\"></span>";
+
+            const skillsMarkup = person.skills
+              .map(
+                (skill) =>
+                  `<span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">${skill}</span>`
+              )
+              .join("\n");
+
+            const mobileMeta = [
+              person.location
+                ? `<span class="slink-table-chip"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>${person.location}</span>`
+                : "",
+              person.createdAtLabel
+                ? `<span class="slink-table-chip"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l2.5 2.5 2.5-2.5" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 3.75h10.5a2.25 2.25 0 012.25 2.25v11.25a2.25 2.25 0 01-2.25 2.25H6.75a2.25 2.25 0 01-2.25-2.25V6a2.25 2.25 0 012.25-2.25z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 9h10.5" /></svg>Added ${person.createdAtLabel}</span>`
+                : ""
+            ]
+              .filter(Boolean)
+              .join("");
+
+            return `
+              <tr class="group cursor-pointer transition hover:bg-slate-50/70" data-person-id="${person.id}">
+                <td data-label="Name" class="px-6 py-4 align-top text-sm text-slate-600">
+                  <div class="flex flex-col gap-1">
+                    <span class="font-medium text-slate-900">${person.name}</span>
+                    ${[
+                      person.email
+                        ? `<span class="text-xs text-slate-400">${person.email}</span>`
+                        : "",
+                      person.location
+                        ? `<span class="text-xs text-slate-400">${person.location}</span>`
+                        : "",
+                      person.createdAtLabel
+                        ? `<span class="text-xs text-slate-400">Registered ${person.createdAtLabel}</span>`
+                        : ""
+                    ]
+                      .filter(Boolean)
+                      .join("")}
+                  </div>
+                  ${
+                    mobileMeta
+                      ? `<div class="mt-3 flex flex-wrap gap-2 sm:hidden">${mobileMeta}</div>`
+                      : ""
+                  }
+                </td>
+                <td data-label="Current Skills" class="px-6 py-4 align-top text-sm text-slate-600">
+                  <div class="flex flex-wrap gap-2">
+                    ${
+                      skillsMarkup ||
+                      '<span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-400">No skills captured</span>'
+                    }
+                  </div>
+                </td>
+                <td data-label="Status" class="px-6 py-4 align-top text-left text-sm text-slate-600 sm:text-center">
+                  <span class="${getStatusPillClasses(person.status)}">
+                    ${statusIcon}
+                    <span class="capitalize">${person.status}</span>
+                  </span>
+                </td>
+                <td data-label="Actions" class="px-6 py-4 align-top text-left text-sm text-slate-600 sm:text-right">
+                  <button
+                    class="inline-flex w-full items-center justify-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-xs font-medium text-red-600 transition hover:border-red-300 hover:bg-red-100 sm:w-auto"
+                    data-action="remove"
+                    data-id="${person.id}"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18 18 6m0 12L6 6" />
+                    </svg>
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            `;
+          })
+          .join("\n");
+      }
+
+      function renderSelectedTutor(tutor) {
+        if (!detailSelectedTutorSection) return;
+
+        if (!tutor) {
+          detailSelectedTutorSection.classList.add("hidden");
+          detailSelectedTutorName.textContent = "";
+          detailSelectedTutorEmail.innerHTML = "";
+          detailSelectedTutorPhone.innerHTML = "";
+          detailSelectedTutorHint.textContent = "";
+          return;
+        }
+
+        detailSelectedTutorSection.classList.remove("hidden");
+        detailSelectedTutorName.textContent = tutor.name || "Tutor";
+        detailSelectedTutorEmail.innerHTML = tutor.email
+          ? `<a class="text-slate-600 underline decoration-dotted underline-offset-2" href="mailto:${tutor.email}">${tutor.email}</a>`
+          : '<span class="text-slate-400">No email on file</span>';
+        detailSelectedTutorPhone.innerHTML = tutor.phone
+          ? `<a class="text-slate-600 underline decoration-dotted underline-offset-2" href="tel:${tutor.phone}">${tutor.phone}</a>`
+          : '<span class="text-slate-400">No phone on file</span>';
+
+        const emailHint = tutor.email
+          ? `We will notify ${tutor.email} with the learner details.`
+          : "Add an email to automatically notify this tutor.";
+        const phoneHint = tutor.phone
+          ? `Share ${tutor.phone} with the learner for direct scheduling.`
+          : "Collect a phone number to enable quick follow-ups.";
+        const notificationHint =
+          state.lastNotifiedTutorId && tutor.id && state.lastNotifiedTutorId === tutor.id
+            ? " Notification emails have been queued for both tutor and learner."
+            : "";
+
+        detailSelectedTutorHint.textContent = `${emailHint} ${phoneHint}${notificationHint}`.trim();
+      }
+
+      function setActiveFilter(filter) {
+        state.activeFilter = filter;
+        navButtons.forEach((button) => {
+          const isActive = button.dataset.filter === filter;
+          button.classList.remove(...NAV_ACTIVE_CLASSES, ...NAV_INACTIVE_CLASSES);
+          button.classList.add(
+            ...(isActive ? NAV_ACTIVE_CLASSES : NAV_INACTIVE_CLASSES)
+          );
+        });
+
+        summaryCards.forEach((card) => {
+          const summaryKey = card.getAttribute("data-summary-card");
+          const isActive = SUMMARY_TO_FILTER[summaryKey] === filter;
+          card.classList.toggle("summary-card--active", isActive);
+          card.setAttribute("aria-pressed", String(isActive));
+        });
+
+        renderTable();
+      }
+
+      async function removePerson(id) {
+        if (!id) return;
+
+        try {
+          await deleteDoc(doc(registrationsRef, id));
+
+          if (state.selectedPersonId === id) {
+            closeDetail();
+          }
+        } catch (error) {
+          console.error("Failed to remove person", error);
+          throw error;
+        }
+      }
+
+      function resetFilters() {
+        state.searchQuery = "";
+        if (searchInput) searchInput.value = "";
+        setActiveFilter("registered");
+        updateCounts();
+        renderTable();
+      }
+
+      function updateCounts() {
+        const counts = state.people.reduce(
+          (accumulator, person) => {
+            accumulator.registered += 1;
+            if (person.flags.newSkill) accumulator.newSkill += 1;
+            if (person.status === "connected") accumulator.connected += 1;
+            if (person.status === "pending") accumulator.pending += 1;
+            if (person.flags.suggested) accumulator.suggested += 1;
+            return accumulator;
+          },
+          {
+            registered: 0,
+            newSkill: 0,
+            connected: 0,
+            pending: 0,
+            suggested: 0
+          }
+        );
+
+        document.querySelectorAll("[data-summary-card]").forEach((card) => {
+          const key = card.getAttribute("data-summary-card");
+          const valueNode = card.querySelector("[data-summary-value]");
+          if (!key || !valueNode) return;
+
+          const metricValue = counts[key] ?? 0;
+          valueNode.textContent = formatInteger(metricValue);
+        });
+
+        document.querySelectorAll("[data-badge-count]").forEach((badge) => {
+          const key = badge.getAttribute("data-badge-count");
+          badge.textContent = formatInteger(counts[key] ?? 0);
+        });
+      }
+
+      navButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const filter = button.dataset.filter;
+          if (filter) {
+            setActiveFilter(filter);
+            if (window.innerWidth < 1024) {
+              closeSidebar();
+            }
+          }
+        });
+      });
+
+      summaryCards.forEach((card) => {
+        const summaryKey = card.getAttribute("data-summary-card");
+        const filter = SUMMARY_TO_FILTER[summaryKey];
+        if (!filter) return;
+
+        const handleActivate = (event) => {
+          if (event.type === "keydown" && !["Enter", " ", "Spacebar"].includes(event.key)) {
+            return;
+          }
+          event.preventDefault();
+          setActiveFilter(filter);
+          registrySection?.scrollIntoView({ behavior: "smooth", block: "start" });
+        };
+
+        card.addEventListener("click", handleActivate);
+        card.addEventListener("keydown", handleActivate);
+      });
+
+      if (mobileNavOpen) {
+        mobileNavOpen.addEventListener("click", () => openSidebar());
+      }
+
+      if (mobileNavClose) {
+        mobileNavClose.addEventListener("click", () => closeSidebar());
+      }
+
+      if (sidebarOverlay) {
+        sidebarOverlay.addEventListener("click", () => closeSidebar());
+      }
+
+      window.addEventListener("resize", syncSidebarToViewport);
+
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          closeSidebar();
+        }
+      });
+
+      if (searchInput) {
+        searchInput.addEventListener("input", (event) => {
+          state.searchQuery = event.target.value;
+          renderTable();
+        });
+      }
+
+      if (resetButton) {
+        resetButton.addEventListener("click", resetFilters);
+      }
+
+      tableBody.addEventListener("click", (event) => {
+        const removeTrigger = event.target.closest("button[data-action=\"remove\"]");
+        if (removeTrigger) {
+          const { id } = removeTrigger.dataset;
+          const person = state.people.find((item) => item.id === id);
+          if (person) {
+            openRemoveConfirm(person);
+          }
+          return;
+        }
+
+        const row = event.target.closest("tr[data-person-id]");
+        if (!row) return;
+
+        const person = state.people.find((item) => item.id === row.dataset.personId);
+        if (!person) return;
+
+        openDetail(person);
+      });
+
+      function subscribeToPeople() {
+        if (state.unsubscribe) state.unsubscribe();
+        state.unsubscribe = onSnapshot(
+          registrationsRef,
+          (snapshot) => {
+            state.people = snapshot.docs.map(hydratePerson);
+
+            state.people.sort((a, b) => b.createdAtValue - a.createdAtValue);
+
+            updateCounts();
+            renderTable();
+
+            if (state.selectedPersonId) {
+              const active = state.people.find((person) => person.id === state.selectedPersonId);
+              if (active) {
+                renderDetail(active);
+              } else {
+                closeDetail();
+              }
+            }
+          },
+          (error) => {
+            console.error("Realtime registration subscription failed", error);
+            showToast("Realtime updates are unavailable. Showing latest snapshot.", { tone: "warning" });
+          }
+        );
+      }
+
+      function boot() {
+        document.querySelectorAll(".nav-item").forEach((button) => {
+          button.classList.add(...NAV_BASE_CLASSES, ...NAV_INACTIVE_CLASSES);
+        });
+
+        document.querySelectorAll(".badge").forEach((badge) => {
+          badge.classList.add(
+            "inline-flex",
+            "min-w-[2.25rem]",
+            "items-center",
+            "justify-center",
+            "rounded-full",
+            "bg-slate-900",
+            "px-2.5",
+            "py-1",
+            "text-xs",
+            "font-semibold",
+            "text-white",
+            "shadow-sm"
+          );
+        });
+
+        syncSidebarToViewport();
+        subscribeToPeople();
+        setActiveFilter(state.activeFilter);
+      }
+
+      window.addEventListener("beforeunload", () => {
+        if (state.unsubscribe) state.unsubscribe();
+      });
+
+      async function connectPerson(personId, tutorId) {
+        if (!personId || !tutorId) return;
+        const personRef = doc(registrationsRef, personId);
+
+        await updateDoc(personRef, {
+          status: "connected",
+          connectedTutorId: tutorId,
+          connectedAt: new Date(),
+          previousStatus: "pending"
+        });
+      }
+
+      async function revertToPending(personId) {
+        if (!personId) return;
+        const personRef = doc(registrationsRef, personId);
+
+        await updateDoc(personRef, {
+          status: "pending",
+          connectedTutorId: null,
+          connectedAt: null,
+          previousStatus: "connected",
+          revertedAt: new Date()
+        });
+      }
+
+      async function queueMatchEmails(learner, tutor) {
+        if (!learner || !tutor) return;
+
+        const overlappingSkills = learner.learnSkills
+          ? tutor.teachSkills.filter((skill) =>
+              learner.learnSkills.some(
+                (desired) => desired && skill && desired.toLowerCase() === skill.toLowerCase()
+              )
+            )
+          : [];
+
+        const safeLearnerName = learner.name || "Slink learner";
+        const safeTutorName = tutor.name || "Slink tutor";
+        const learnerEmail = learner.email || "";
+        const tutorEmail = tutor.email || "";
+
+        const tutorContactBlock = [
+          learner.email ? `Email: ${learner.email}` : null,
+          learner.phone ? `Phone: ${learner.phone}` : null,
+          learner.location ? `Location: ${learner.location}` : null
+        ]
+          .filter(Boolean)
+          .join("\n");
+
+        const tutorMessage = `Hi ${safeTutorName},\n\nYou have been matched with ${safeLearnerName} to teach ${
+          overlappingSkills.length ? overlappingSkills.join(", ") : learner.learnSkills?.join(", ") || "a new skill"
+        }.\n\nLearner details:\n${tutorContactBlock || "We will follow up with more details soon."}\n\nThank you for supporting the Slink community!`;
+
+        const learnerContactBlock = [
+          tutor.email ? `Email: ${tutor.email}` : null,
+          tutor.phone ? `Phone: ${tutor.phone}` : null,
+          tutor.location ? `Location: ${tutor.location}` : null
+        ]
+          .filter(Boolean)
+          .join("\n");
+
+        const learnerMessage = `Hi ${safeLearnerName},\n\nGreat news! ${safeTutorName} is available to help you with ${
+          overlappingSkills.length ? overlappingSkills.join(", ") : learner.learnSkills?.join(", ") || "your goal"
+        }.\n\nTutor details:\n${learnerContactBlock || "We will follow up with contact details shortly."}\n\nKeep learning with Slink!`;
+
+        const notifications = [];
+
+        if (tutorEmail) {
+          notifications.push(
+            addDoc(emailQueueRef, {
+              to: tutorEmail,
+              from: SENDER_EMAIL,
+              subject: `New Slink learner match: ${safeLearnerName}`,
+              message: {
+                text: tutorMessage
+              },
+              metadata: {
+                type: "tutorMatch",
+                learnerId: learner.id,
+                tutorId: tutor.id,
+                overlappingSkills
+              },
+              status: "queued",
+              createdAt: serverTimestamp()
+            })
+          );
+        }
+
+        if (learnerEmail) {
+          notifications.push(
+            addDoc(emailQueueRef, {
+              to: learnerEmail,
+              from: SENDER_EMAIL,
+              subject: `Your Slink tutor match: ${safeTutorName}`,
+              message: {
+                text: learnerMessage
+              },
+              metadata: {
+                type: "learnerMatch",
+                learnerId: learner.id,
+                tutorId: tutor.id,
+                overlappingSkills
+              },
+              status: "queued",
+              createdAt: serverTimestamp()
+            })
+          );
+        }
+
+        if (!notifications.length) {
+          state.lastNotifiedTutorId = tutor.id;
+          renderSelectedTutor(tutor);
+          return;
+        }
+
+        await Promise.all(notifications);
+        state.lastNotifiedTutorId = tutor.id;
+        renderSelectedTutor(tutor);
+      }
+
+      function keepPending(personId) {
+        if (!personId) return;
+        // No Firestore update; just close the panel and keep status.
+        console.info(`User ${personId} remains pending.`);
+      }
+
+      function renderDetail(person) {
+        state.selectedPersonId = person.id;
+        state.selectedPerson = person;
+        state.selectedTutorId = null;
+        state.selectedTutor = null;
+        state.lastNotifiedTutorId = null;
+
+        renderSelectedTutor(null);
+
+        const statusClasses = getStatusPillClasses(person.status)
+          .replace("bg-emerald-50", "bg-emerald-50 text-emerald-700")
+          .replace("bg-amber-50", "bg-amber-50 text-amber-700");
+
+        detailStatus.className = statusClasses;
+        detailStatus.innerHTML = `<span class=\"h-2 w-2 rounded-full ${
+          person.status === "connected" ? "bg-emerald-500" : "bg-amber-500"
+        }\"></span><span class=\"capitalize\">${person.status}</span>`;
+
+        detailName.textContent = person.name;
+        detailEmail.innerHTML = person.email
+          ? `<svg class=\"h-4 w-4 text-slate-400\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M4.5 6.75l7.5 4.5 7.5-4.5\"/><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M3.75 6.75v10.5a1.5 1.5 0 012.25 1.5h13.5a1.5 1.5 0 011.5-1.5V6.75\"/></svg>${person.email}`
+          : "";
+        detailLocation.innerHTML = person.location
+          ? `<svg class=\"h-4 w-4 text-slate-400\" xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M12 21.75c-4.5-5.25-6.75-8.625-6.75-11.25a6.75 6.75 0 1113.5 0c0 2.625-2.25 6-6.75 11.25Z\"/><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M12 12.75a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5Z\"/></svg>${person.location}`
+          : "";
+        detailCreated.innerHTML = person.createdAtLabel
+          ? `<svg class=\"h-4 w-4 text-slate-400\" xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M6.75 3.75v2.25M17.25 3.75v2.25M3.75 9h16.5M5.25 6h13.5a1.5 1.5 0 011.5 1.5v11.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5V7.5A1.5 1.5 0 015.25 6Zm0 6h4.5v4.5H5.25V12Z\"/></svg>${person.createdAtLabel}`
+          : "";
+
+        detailEmailValue.textContent = person.email || "—";
+        detailLocationValue.textContent = person.location || "—";
+        detailSource.textContent = person.source || "—";
+        detailConsent.textContent =
+          typeof person.consent === "boolean"
+            ? person.consent
+              ? "Granted"
+              : "Revoked"
+            : "Unknown";
+
+        detailLearn.innerHTML = person.learnSkills.length
+          ? person.learnSkills
+              .map(
+                (skill) =>
+                  `<span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">${skill}</span>`
+              )
+              .join("")
+          : '<span class="text-xs text-slate-400">No learning goals recorded.</span>';
+
+        detailTeach.innerHTML = person.teachSkills.length
+          ? person.teachSkills
+              .map(
+                (skill) =>
+                  `<span class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">${skill}</span>`
+              )
+              .join("")
+          : '<span class="text-xs text-slate-400">No teaching skills supplied.</span>';
+
+        const matches = getTutorMatches(person);
+        const hasMatches = matches.length > 0;
+
+        detailMatchCount.textContent = hasMatches
+          ? `${matches.length} match${matches.length > 1 ? "es" : ""}`
+          : "No matches yet";
+
+        detailTutorSuggestions.innerHTML = hasMatches
+          ? matches
+              .map(
+                ({ tutor, overlapping }) => `
+                  <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div class="flex items-start justify-between gap-3">
+                      <div>
+                        <p class="text-sm font-semibold text-slate-900">${tutor.name}</p>
+                        <p class="text-xs text-slate-400">${[
+                          tutor.email || "No email on file",
+                          tutor.phone || "No phone on file"
+                        ].join(" · ")}</p>
+                      </div>
+                      <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                        ${overlapping.join(", ")}
+                      </span>
+                    </div>
+                    <p class="mt-2 text-xs text-slate-500">Location: ${tutor.location || "—"}</p>
+                    <button
+                      class="mt-3 inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                      data-select-tutor="${tutor.id}"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                      Choose as Tutor
+                    </button>
+                  </div>
+                `
+              )
+              .join("")
+          : '<p class="text-xs text-slate-400">No suitable tutor found yet. Encourage verified members to share the skill.</p>';
+
+        const defaultConnectLabel = `<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-4 w-4\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M8.25 7.5h7.5m-7.5 4.5h3\" /><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M3.75 6.75v10.5a1.5 1.5 0 012.25 1.5h13.5a1.5 1.5 0 011.5-1.5V6.75\" /></svg>Mark as Connected`;
+        const keepPendingText = "Keep Pending";
+        const revertText = "Revert to Pending";
+
+        const updateConnectState = () => {
+          const hasSelection = Boolean(state.selectedTutorId);
+          connectButton.dataset.selectedTutorId = hasSelection ? state.selectedTutorId : "";
+          connectButton.disabled = !hasSelection;
+          if (!hasMatches) {
+            connectButton.disabled = true;
+          }
+          connectButton.classList.toggle("bg-slate-900", !hasSelection);
+          connectButton.classList.toggle("hover:bg-slate-700", !hasSelection);
+          connectButton.classList.toggle("bg-emerald-600", hasSelection);
+          connectButton.classList.toggle("hover:bg-emerald-700", hasSelection);
+          connectButton.innerHTML = hasSelection
+            ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 12.75l6 6 9-13.5" /></svg>Connect ${(person.name || "learner").split(/\s+/)[0]} to tutor`
+            : defaultConnectLabel;
+        };
+
+        updateConnectState();
+
+        detailTutorSuggestions.querySelectorAll("[data-select-tutor]").forEach((button) => {
+          button.addEventListener("click", () => {
+            state.selectedTutorId = button.dataset.selectTutor;
+            const selectedTutor = state.people.find((candidate) => candidate.id === state.selectedTutorId) || null;
+            state.selectedTutor = selectedTutor;
+            state.lastNotifiedTutorId = null;
+            renderSelectedTutor(selectedTutor);
+
+            detailTutorSuggestions.querySelectorAll("[data-select-tutor]").forEach((other) => {
+              other.classList.remove("border-slate-900", "text-slate-900", "bg-slate-900", "text-white");
+              other.classList.add("border-slate-300", "text-slate-600", "bg-white");
+            });
+            button.classList.remove("border-slate-300", "text-slate-600", "bg-white");
+            button.classList.add("border-slate-900", "text-white", "bg-slate-900");
+            updateConnectState();
+          });
+        });
+
+        declineButton.disabled = person.status !== "pending";
+        declineButton.classList.toggle("border-red-200", person.status === "pending");
+        declineButton.classList.toggle("bg-red-50", person.status === "pending");
+        declineButton.classList.toggle("text-red-600", person.status === "pending");
+        declineButton.classList.toggle("hover:border-red-300", person.status === "pending");
+        declineButton.classList.toggle("hover:bg-red-100", person.status === "pending");
+        declineButton.classList.toggle("border-slate-200", person.status === "connected");
+        declineButton.classList.toggle("bg-slate-50", person.status === "connected");
+        declineButton.classList.toggle("text-slate-600", person.status === "connected");
+        declineButton.classList.toggle("hover:border-slate-300", person.status === "connected");
+        declineButton.classList.toggle("hover:bg-slate-100", person.status === "connected");
+
+        if (person.status === "connected") {
+          declineButton.disabled = false;
+          declineButton.title = "Move this learner back to pending";
+          declineLabel.textContent = revertText;
+        } else {
+          declineButton.disabled = false;
+          declineButton.title = "Keep this learner pending";
+          declineLabel.textContent = keepPendingText;
+        }
+
+        connectButton.onclick = async () => {
+          if (!state.selectedTutorId || !state.selectedPersonId) return;
+          connectButton.disabled = true;
+          connectButton.textContent = "Connecting...";
+          try {
+            await connectPerson(state.selectedPersonId, state.selectedTutorId);
+            if (state.selectedPerson && state.selectedTutor) {
+              connectButton.textContent = "Notifying matches...";
+              await queueMatchEmails(state.selectedPerson, state.selectedTutor);
+            }
+            connectButton.textContent = "Connected";
+            setTimeout(() => closeDetail(), 350);
+          } catch (error) {
+            console.error("Failed to connect person", error);
+            connectButton.disabled = false;
+            connectButton.textContent = "Failed. Try again";
+          }
+        };
+
+        declineButton.onclick = () => {
+          if (!state.selectedPersonId) return;
+
+          declineButton.disabled = true;
+          declineLabel.textContent = "Keeping Pending...";
+          keepPending(state.selectedPersonId);
+          setTimeout(() => {
+            declineLabel.textContent = keepPendingText;
+            closeDetail();
+          }, 200);
+        };
+      }
+
+      function openDetail(person) {
+        if (!detailRoot || !detailOverlay || !detailPanel) return;
+
+        renderDetail(person);
+
+        if (body) {
+          body.classList.add("overflow-hidden", "lg:overflow-visible");
+        }
+
+        detailOverlay.classList.add("opacity-0");
+        detailOverlay.classList.remove("opacity-100");
+        detailPanel.classList.add("translate-x-full");
+
+        detailRoot.classList.remove("hidden");
+
+        requestAnimationFrame(() => {
+          detailOverlay.classList.remove("opacity-0");
+          detailOverlay.classList.add("opacity-100");
+          detailPanel.classList.remove("translate-x-full");
+        });
+      }
+
+      function closeDetail() {
+        if (!detailRoot || !detailOverlay || !detailPanel) return;
+        if (detailRoot.classList.contains("hidden")) return;
+
+        if (body) {
+          body.classList.remove("overflow-hidden", "lg:overflow-visible");
+        }
+
+        state.selectedPersonId = null;
+        state.selectedPerson = null;
+        state.selectedTutorId = null;
+        state.selectedTutor = null;
+        state.lastNotifiedTutorId = null;
+        renderSelectedTutor(null);
+
+        detailOverlay.classList.add("opacity-0");
+        detailOverlay.classList.remove("opacity-100");
+        detailPanel.classList.add("translate-x-full");
+
+        setTimeout(() => {
+          detailRoot.classList.add("hidden");
+        }, 250);
+      }
+
+      function getTutorMatches(person) {
+        if (!person.learnSkills.length) return [];
+
+        const desired = new Set(person.learnSkills.map((skill) => skill.toLowerCase()));
+
+        return state.people
+          .filter((candidate) => candidate.id !== person.id)
+          .map((candidate) => {
+            const overlapping = candidate.teachSkills.filter((skill) =>
+              desired.has(skill.toLowerCase())
+            );
+            return { tutor: candidate, overlapping };
+          })
+          .filter(({ overlapping }) => overlapping.length)
+          .sort((a, b) => b.overlapping.length - a.overlapping.length);
+      }
+
+      function wireDetailDismiss()
+      {
+        detailCloseButtons = Array.from(
+          document.querySelectorAll("[data-close-detail]")
+        );
+
+        detailCloseButtons.forEach((button) =>
+          button.addEventListener("click", closeDetail)
+        );
+
+        if (detailRoot) {
+          detailRoot.addEventListener("click", (event) => {
+            if (event.target === detailRoot) {
+              closeDetail();
+            }
+          });
+        }
+      }
+
+      function wireRemoveConfirm() {
+        if (!removeConfirmInput || !removeConfirmSubmit) return;
+
+        const validate = () => {
+          const typed = (removeConfirmInput.value || "").trim().toLowerCase();
+          const target = (removeConfirmState.personName || "").trim().toLowerCase();
+          removeConfirmSubmit.disabled = !typed || typed !== target;
+        };
+
+        removeConfirmInput.addEventListener("input", validate);
+
+        if (removeConfirmCancel) {
+          removeConfirmCancel.addEventListener("click", () => {
+            closeRemoveConfirm();
+          });
+        }
+
+        if (removeConfirmOverlay) {
+          removeConfirmOverlay.addEventListener("click", (event) => {
+            if (event.target === removeConfirmOverlay) {
+              closeRemoveConfirm();
+            }
+          });
+        }
+
+        if (removeConfirmRoot) {
+          removeConfirmRoot.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+              event.stopPropagation();
+              closeRemoveConfirm();
+            }
+          });
+        }
+
+        removeConfirmSubmit.addEventListener("click", async () => {
+          if (!removeConfirmState.personId) return;
+
+          removeConfirmSubmit.disabled = true;
+          removeConfirmSubmit.textContent = "Deleting…";
+
+          try {
+            await removePerson(removeConfirmState.personId);
+            showToast(
+              `${removeConfirmState.personName || "Registration"} has been deleted from the database.`,
+              { tone: "warning" }
+            );
+            closeRemoveConfirm();
+          } catch (error) {
+            console.error("Failed to delete person", error);
+            showToast("Deletion failed. Please try again.", { tone: "error" });
+            removeConfirmSubmit.disabled = false;
+            removeConfirmSubmit.textContent = removeConfirmDefaultLabel;
+            return;
+          }
+        });
+      }
+
+      function openRemoveConfirm(person) {
+        if (!removeConfirmRoot || !removeConfirmDialog || !removeConfirmOverlay) return;
+
+        removeConfirmState = {
+          personId: person.id,
+          personName: person.name
+        };
+
+        if (removeConfirmLabel) {
+          removeConfirmLabel.textContent = person.name || "this registration";
+        }
+        if (removeConfirmName) {
+          removeConfirmName.value = person.name || "";
+        }
+        if (removeConfirmInput) {
+          removeConfirmInput.value = "";
+          removeConfirmInput.placeholder = person.name
+            ? `Type "${person.name}" to confirm`
+            : "Type the registrant's name";
+        }
+
+        if (removeConfirmSubmit) {
+          removeConfirmSubmit.disabled = true;
+          removeConfirmSubmit.textContent = removeConfirmDefaultLabel;
+        }
+
+        removeConfirmRoot.classList.remove("hidden");
+
+        requestAnimationFrame(() => {
+          removeConfirmOverlay.classList.remove("opacity-0");
+          removeConfirmOverlay.classList.add("opacity-100");
+          removeConfirmDialog.classList.remove("opacity-0");
+          removeConfirmDialog.classList.add("opacity-100");
+        });
+
+        setTimeout(() => removeConfirmInput?.focus({ preventScroll: true }), 50);
+      }
+
+      function closeRemoveConfirm() {
+        if (!removeConfirmRoot || !removeConfirmDialog || !removeConfirmOverlay) return;
+
+        removeConfirmOverlay.classList.add("opacity-0");
+        removeConfirmOverlay.classList.remove("opacity-100");
+        removeConfirmDialog.classList.add("opacity-0");
+        removeConfirmDialog.classList.remove("opacity-100");
+
+        if (removeConfirmSubmit) {
+          removeConfirmSubmit.textContent = removeConfirmDefaultLabel;
+          removeConfirmSubmit.disabled = true;
+        }
+        if (removeConfirmInput) {
+          removeConfirmInput.value = "";
+        }
+
+        setTimeout(() => {
+          removeConfirmRoot.classList.add("hidden");
+          removeConfirmState = { personId: null, personName: "" };
+        }, 200);
+      }
+
+      wireDetailDismiss();
+      wireRemoveConfirm();
+
+      boot();
+    </script>
+  </body>
+</html>
