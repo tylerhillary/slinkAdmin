@@ -1711,7 +1711,9 @@
 
         const defaultConnectLabel = `<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-4 w-4\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M8.25 7.5h7.5m-7.5 4.5h3\" /><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M3.75 6.75v10.5a1.5 1.5 0 012.25 1.5h13.5a1.5 1.5 0 011.5-1.5V6.75\" /></svg>Mark as Connected`;
         const keepPendingText = "Keep Pending";
+        const keepPendingProgressText = "Keeping Pending...";
         const revertText = "Revert to Pending";
+        const revertProgressText = "Reverting...";
 
         const updateConnectState = () => {
           const hasSelection = Boolean(state.selectedTutorId);
@@ -1750,26 +1752,27 @@
         });
 
         declineButton.disabled = person.status !== "pending";
-        declineButton.classList.toggle("border-red-200", person.status === "pending");
-        declineButton.classList.toggle("bg-red-50", person.status === "pending");
-        declineButton.classList.toggle("text-red-600", person.status === "pending");
-        declineButton.classList.toggle("hover:border-red-300", person.status === "pending");
-        declineButton.classList.toggle("hover:bg-red-100", person.status === "pending");
-        declineButton.classList.toggle("border-slate-200", person.status === "connected");
-        declineButton.classList.toggle("bg-slate-50", person.status === "connected");
-        declineButton.classList.toggle("text-slate-600", person.status === "connected");
-        declineButton.classList.toggle("hover:border-slate-300", person.status === "connected");
-        declineButton.classList.toggle("hover:bg-slate-100", person.status === "connected");
+        const isConnected = person.status === "connected";
+        declineButton.classList.toggle("border-red-200", !isConnected);
+        declineButton.classList.toggle("bg-red-50", !isConnected);
+        declineButton.classList.toggle("text-red-600", !isConnected);
+        declineButton.classList.toggle("hover:border-red-300", !isConnected);
+        declineButton.classList.toggle("hover:bg-red-100", !isConnected);
+        declineButton.classList.toggle("border-slate-200", isConnected);
+        declineButton.classList.toggle("bg-slate-50", isConnected);
+        declineButton.classList.toggle("text-slate-600", isConnected);
+        declineButton.classList.toggle("hover:border-slate-300", isConnected);
+        declineButton.classList.toggle("hover:bg-slate-100", isConnected);
 
-        if (person.status === "connected") {
-          declineButton.disabled = false;
-          declineButton.title = "Move this learner back to pending";
-          declineLabel.textContent = revertText;
-        } else {
-          declineButton.disabled = false;
-          declineButton.title = "Keep this learner pending";
-          declineLabel.textContent = keepPendingText;
-        }
+        const declineAction = isConnected ? revertToPending : keepPending;
+        const declineLabelText = isConnected ? revertText : keepPendingText;
+        const declineProgressText = isConnected ? revertProgressText : keepPendingProgressText;
+
+        declineButton.disabled = false;
+        declineButton.title = isConnected
+          ? "Move this learner back to pending"
+          : "Keep this learner pending";
+        declineLabel.textContent = declineLabelText;
 
         connectButton.onclick = async () => {
           if (!state.selectedTutorId || !state.selectedPersonId) return;
@@ -1790,16 +1793,22 @@
           }
         };
 
-        declineButton.onclick = () => {
+        declineButton.onclick = async () => {
           if (!state.selectedPersonId) return;
 
           declineButton.disabled = true;
-          declineLabel.textContent = "Keeping Pending...";
-          keepPending(state.selectedPersonId);
-          setTimeout(() => {
-            declineLabel.textContent = keepPendingText;
-            closeDetail();
-          }, 200);
+          declineLabel.textContent = declineProgressText;
+          try {
+            await declineAction(state.selectedPersonId);
+            setTimeout(() => {
+              declineLabel.textContent = declineLabelText;
+              closeDetail();
+            }, 200);
+          } catch (error) {
+            console.error("Failed to update learner status", error);
+            declineButton.disabled = false;
+            declineLabel.textContent = declineLabelText;
+          }
         };
       }
 
