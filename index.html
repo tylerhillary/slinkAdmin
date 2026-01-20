@@ -493,6 +493,7 @@
             <h2 id="detail-name" class="mt-3 text-2xl font-semibold text-slate-900"></h2>
             <div class="mt-2 flex flex-wrap gap-3 text-sm text-slate-500">
               <span id="detail-email" class="flex items-center gap-2"></span>
+              <span id="detail-phone" class="flex items-center gap-2"></span>
               <span id="detail-location" class="flex items-center gap-2"></span>
               <span id="detail-created" class="flex items-center gap-2"></span>
             </div>
@@ -517,6 +518,10 @@
               <div class="flex items-start gap-3">
                 <dt class="w-32 text-slate-400">Email</dt>
                 <dd id="detail-email-value" class="flex-1 break-words"></dd>
+              </div>
+              <div class="flex items-start gap-3">
+                <dt class="w-32 text-slate-400">Phone</dt>
+                <dd id="detail-phone-value" class="flex-1 break-words"></dd>
               </div>
               <div class="flex items-start gap-3">
                 <dt class="w-32 text-slate-400">Location</dt>
@@ -576,6 +581,10 @@
               <div class="flex items-start gap-2">
                 <dt class="w-16 text-slate-400">Email</dt>
                 <dd id="detail-selected-tutor-email" class="flex-1 break-words"></dd>
+              </div>
+              <div class="flex items-start gap-2">
+                <dt class="w-16 text-slate-400">Location</dt>
+                <dd id="detail-selected-tutor-location" class="flex-1 break-words"></dd>
               </div>
               <div class="flex items-start gap-2">
                 <dt class="w-16 text-slate-400">Phone</dt>
@@ -638,6 +647,7 @@
             <div class="mt-3 flex flex-wrap gap-3 text-sm text-slate-500">
               <span id="detail-email" class="flex items-center gap-2"></span>
               <span id="detail-location" class="flex items-center gap-2"></span>
+              <span id="detail-connected" class="flex items-center gap-2"></span>
               <span id="detail-created" class="flex items-center gap-2"></span>
             </div>
           </div>
@@ -894,9 +904,12 @@
       const detailStatus = document.getElementById("detail-status");
       const detailName = document.getElementById("detail-name");
       const detailEmail = document.getElementById("detail-email");
+      const detailPhone = document.getElementById("detail-phone");
       const detailLocation = document.getElementById("detail-location");
+      const detailConnected = document.getElementById("detail-connected");
       const detailCreated = document.getElementById("detail-created");
       const detailEmailValue = document.getElementById("detail-email-value");
+      const detailPhoneValue = document.getElementById("detail-phone-value");
       const detailLocationValue = document.getElementById("detail-location-value");
       const detailSource = document.getElementById("detail-source");
       const detailConsent = document.getElementById("detail-consent");
@@ -907,6 +920,7 @@
       const detailSelectedTutorSection = document.getElementById("detail-selected-tutor");
       const detailSelectedTutorName = document.getElementById("detail-selected-tutor-name");
       const detailSelectedTutorEmail = document.getElementById("detail-selected-tutor-email");
+      const detailSelectedTutorLocation = document.getElementById("detail-selected-tutor-location");
       const detailSelectedTutorPhone = document.getElementById("detail-selected-tutor-phone");
       const detailSelectedTutorHint = document.getElementById("detail-selected-tutor-hint");
       const connectButton = document.getElementById("detail-connect");
@@ -1107,6 +1121,24 @@
             newSkill: data.source === "client-submission",
             suggested: data.source === "ai-suggestion"
           },
+          connectedTutorId: data.connectedTutorId ?? "",
+          connectedTutorName: data.connectedTutorName ?? "",
+          connectedTutorLocation: data.connectedTutorLocation ?? "",
+          connectedTutorEmail: data.connectedTutorEmail ?? "",
+          connectedTutorPhone: data.connectedTutorPhone ?? "",
+          connectedAtLabel: parseCreatedAt(data.connectedAt),
+          connectedAtValue: (() => {
+            if (!data.connectedAt) return 0;
+            if (typeof data.connectedAt === "string") {
+              const timestamp = Date.parse(data.connectedAt);
+              return Number.isNaN(timestamp) ? 0 : timestamp;
+            }
+            const date =
+              typeof data.connectedAt?.toDate === "function"
+                ? data.connectedAt.toDate()
+                : new Date(data.connectedAt);
+            return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+          })(),
           consent: typeof data.consent === "boolean" ? data.consent : null,
           source: data.source ?? ""
         };
@@ -1154,6 +1186,14 @@
 
         tableBody.innerHTML = filtered
           .map((person) => {
+            const connectedTutor =
+              person.status === "connected" && person.connectedTutorId
+                ? state.people.find((candidate) => candidate.id === person.connectedTutorId) || null
+                : null;
+            const connectedTutorName = connectedTutor?.name || person.connectedTutorName || "";
+            const connectedTutorLocation =
+              connectedTutor?.location || person.connectedTutorLocation || "";
+
             const statusIcon =
               person.status === "connected"
                 ? "<span class=\"h-2 w-2 rounded-full bg-emerald-500\"></span>"
@@ -1172,6 +1212,9 @@
                 : "",
               person.createdAtLabel
                 ? `<span class="slink-table-chip"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l2.5 2.5 2.5-2.5" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 3.75h10.5a2.25 2.25 0 012.25 2.25v11.25a2.25 2.25 0 01-2.25 2.25H6.75a2.25 2.25 0 01-2.25-2.25V6a2.25 2.25 0 012.25-2.25z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 9h10.5" /></svg>Added ${person.createdAtLabel}</span>`
+                : "",
+              person.status === "connected" && (connectedTutorName || person.connectedTutorId)
+                ? `<span class="slink-table-chip"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.5 6h2.25A2.25 2.25 0 0118 8.25v2.25M10.5 18H8.25A2.25 2.25 0 016 15.75V13.5M17.25 6.75 6.75 17.25" /></svg>Connected${connectedTutorName ? ` to ${connectedTutorName}` : ""}${connectedTutorLocation ? ` · ${connectedTutorLocation}` : ""}</span>`
                 : ""
             ]
               .filter(Boolean)
@@ -1188,6 +1231,9 @@
                         : "",
                       person.location
                         ? `<span class="text-xs text-slate-400">${person.location}</span>`
+                        : "",
+                      person.status === "connected"
+                        ? `<span class="text-xs font-medium text-emerald-600">Connected${connectedTutorName ? ` to ${connectedTutorName}` : ""}${connectedTutorLocation ? ` · ${connectedTutorLocation}` : ""}</span>`
                         : "",
                       person.createdAtLabel
                         ? `<span class="text-xs text-slate-400">Registered ${person.createdAtLabel}</span>`
@@ -1241,6 +1287,7 @@
           detailSelectedTutorSection.classList.add("hidden");
           detailSelectedTutorName.textContent = "";
           detailSelectedTutorEmail.innerHTML = "";
+          detailSelectedTutorLocation.innerHTML = "";
           detailSelectedTutorPhone.innerHTML = "";
           detailSelectedTutorHint.textContent = "";
           return;
@@ -1251,9 +1298,26 @@
         detailSelectedTutorEmail.innerHTML = tutor.email
           ? `<a class="text-slate-600 underline decoration-dotted underline-offset-2" href="mailto:${tutor.email}">${tutor.email}</a>`
           : '<span class="text-slate-400">No email on file</span>';
+        detailSelectedTutorLocation.innerHTML = tutor.location
+          ? `<span class="text-slate-600">${tutor.location}</span>`
+          : '<span class="text-slate-400">No location on file</span>';
         detailSelectedTutorPhone.innerHTML = tutor.phone
           ? `<a class="text-slate-600 underline decoration-dotted underline-offset-2" href="tel:${tutor.phone}">${tutor.phone}</a>`
           : '<span class="text-slate-400">No phone on file</span>';
+
+        const activePerson = state.selectedPerson;
+        const isCurrentConnection =
+          activePerson?.status === "connected" &&
+          activePerson?.connectedTutorId &&
+          tutor.id === activePerson.connectedTutorId;
+
+        if (isCurrentConnection) {
+          const connectedOn = activePerson.connectedAtLabel
+            ? `Connected on ${activePerson.connectedAtLabel}.`
+            : "This learner is currently connected to this tutor.";
+          detailSelectedTutorHint.textContent = connectedOn;
+          return;
+        }
 
         const emailHint = tutor.email
           ? `We will notify ${tutor.email} with the learner details.`
@@ -1486,13 +1550,17 @@
         if (state.unsubscribe) state.unsubscribe();
       });
 
-      async function connectPerson(personId, tutorId) {
-        if (!personId || !tutorId) return;
-        const personRef = doc(registrationsRef, personId);
+      async function connectPerson(person, tutor) {
+        if (!person?.id || !tutor?.id) return;
+        const personRef = doc(registrationsRef, person.id);
 
         await updateDoc(personRef, {
           status: "connected",
-          connectedTutorId: tutorId,
+          connectedTutorId: tutor.id,
+          connectedTutorName: tutor.name || "",
+          connectedTutorEmail: tutor.email || "",
+          connectedTutorPhone: tutor.phone || "",
+          connectedTutorLocation: tutor.location || "",
           connectedAt: new Date(),
           previousStatus: "pending"
         });
@@ -1505,6 +1573,10 @@
         await updateDoc(personRef, {
           status: "pending",
           connectedTutorId: null,
+          connectedTutorName: null,
+          connectedTutorEmail: null,
+          connectedTutorPhone: null,
+          connectedTutorLocation: null,
           connectedAt: null,
           previousStatus: "connected",
           revertedAt: new Date()
@@ -1615,11 +1687,26 @@
       function renderDetail(person) {
         state.selectedPersonId = person.id;
         state.selectedPerson = person;
-        state.selectedTutorId = null;
-        state.selectedTutor = null;
+        const connectedTutor =
+          person.status === "connected" && person.connectedTutorId
+            ? state.people.find((candidate) => candidate.id === person.connectedTutorId) || null
+            : null;
+        state.selectedTutorId = connectedTutor ? connectedTutor.id : null;
+        state.selectedTutor = connectedTutor;
         state.lastNotifiedTutorId = null;
 
-        renderSelectedTutor(null);
+        const fallbackTutor = connectedTutor ||
+          (person.status === "connected" && person.connectedTutorId
+            ? {
+                id: person.connectedTutorId,
+                name: person.connectedTutorName || "Assigned tutor",
+                email: person.connectedTutorEmail || "",
+                phone: person.connectedTutorPhone || "",
+                location: person.connectedTutorLocation || ""
+              }
+            : null);
+
+        renderSelectedTutor(fallbackTutor);
 
         const statusClasses = getStatusPillClasses(person.status)
           .replace("bg-emerald-50", "bg-emerald-50 text-emerald-700")
@@ -1632,16 +1719,39 @@
 
         detailName.textContent = person.name;
         detailEmail.innerHTML = person.email
-          ? `<svg class=\"h-4 w-4 text-slate-400\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M4.5 6.75l7.5 4.5 7.5-4.5\"/><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M3.75 6.75v10.5a1.5 1.5 0 012.25 1.5h13.5a1.5 1.5 0 011.5-1.5V6.75\"/></svg>${person.email}`
+          ? `<svg class="h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 6.75l7.5 4.5 7.5-4.5"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 6.75v10.5a1.5 1.5 0 012.25 1.5h13.5a1.5 1.5 0 011.5-1.5V6.75"/></svg>${person.email}`
+          : "";
+        detailPhone.innerHTML = person.phone
+          ? `<svg class="h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 5.25a2.25 2.25 0 012.25-2.25h1.5c.473 0 .93.168 1.29.476l2.385 1.988a1.5 1.5 0 01.495 1.112v2.351a1.5 1.5 0 01-.44 1.06l-.877.877a.75.75 0 00-.073.974 10.45 10.45 0 003.799 3.798.75.75 0 00.974-.073l.877-.877a1.5 1.5 0 011.06-.44h2.351a1.5 1.5 0 011.112.495l1.988 2.385c.308.36.476.817.476 1.29v1.5A2.25 2.25 0 0118.75 21h-.5C9.335 21 2.5 14.165 2.5 5.75v-.5z"/></svg>${person.phone}`
           : "";
         detailLocation.innerHTML = person.location
-          ? `<svg class=\"h-4 w-4 text-slate-400\" xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M12 21.75c-4.5-5.25-6.75-8.625-6.75-11.25a6.75 6.75 0 1113.5 0c0 2.625-2.25 6-6.75 11.25Z\"/><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M12 12.75a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5Z\"/></svg>${person.location}`
+          ? `<svg class="h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 21.75c-4.5-5.25-6.75-8.625-6.75-11.25a6.75 6.75 0 1113.5 0c0 2.625-2.25 6-6.75 11.25Z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 12.75a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5Z"/></svg>${person.location}`
           : "";
+        if (detailConnected) {
+          if (person.status === "connected") {
+            const connectedTutorName = fallbackTutor?.name || "Assigned tutor";
+            const connectedTutorLocation = fallbackTutor?.location || "";
+            const connectedIcon =
+              '<svg class="h-4 w-4 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.5 6h2.25A2.25 2.25 0 0118 8.25v2.25M10.5 18H8.25A2.25 2.25 0 016 15.75V13.5M17.25 6.75 6.75 17.25" /></svg>';
+            const connectedLabel = connectedTutorName && connectedTutorName !== "Assigned tutor"
+              ? `Connected to <span class="font-medium text-slate-700">${connectedTutorName}</span>`
+              : "Connected";
+            const locationLabel = connectedTutorLocation
+              ? ` · ${connectedTutorLocation}`
+              : "";
+            detailConnected.innerHTML = `${connectedIcon}${connectedLabel}${locationLabel}`;
+          } else {
+            detailConnected.innerHTML = "";
+          }
+        }
         detailCreated.innerHTML = person.createdAtLabel
           ? `<svg class=\"h-4 w-4 text-slate-400\" xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M6.75 3.75v2.25M17.25 3.75v2.25M3.75 9h16.5M5.25 6h13.5a1.5 1.5 0 011.5 1.5v11.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5V7.5A1.5 1.5 0 015.25 6Zm0 6h4.5v4.5H5.25V12Z\"/></svg>${person.createdAtLabel}`
           : "";
 
         detailEmailValue.textContent = person.email || "—";
+        detailPhoneValue.innerHTML = person.phone
+          ? `<a class="text-slate-600 underline decoration-dotted underline-offset-2" href="tel:${person.phone}">${person.phone}</a>`
+          : "—";
         detailLocationValue.textContent = person.location || "—";
         detailSource.textContent = person.source || "—";
         detailConsent.textContent =
@@ -1775,15 +1885,13 @@
         declineLabel.textContent = declineLabelText;
 
         connectButton.onclick = async () => {
-          if (!state.selectedTutorId || !state.selectedPersonId) return;
+          if (!state.selectedTutor || !state.selectedPerson) return;
           connectButton.disabled = true;
           connectButton.textContent = "Connecting...";
           try {
-            await connectPerson(state.selectedPersonId, state.selectedTutorId);
-            if (state.selectedPerson && state.selectedTutor) {
-              connectButton.textContent = "Notifying matches...";
-              await queueMatchEmails(state.selectedPerson, state.selectedTutor);
-            }
+            await connectPerson(state.selectedPerson, state.selectedTutor);
+            connectButton.textContent = "Notifying matches...";
+            await queueMatchEmails(state.selectedPerson, state.selectedTutor);
             connectButton.textContent = "Connected";
             setTimeout(() => closeDetail(), 350);
           } catch (error) {
