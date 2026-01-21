@@ -454,6 +454,11 @@
                         Status
                       </th>
                       <th
+                        class="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500"
+                      >
+                        Readiness
+                      </th>
+                      <th
                         class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500"
                       >
                         Actions
@@ -494,6 +499,7 @@
             <div class="mt-2 flex flex-wrap gap-3 text-sm text-slate-500">
               <span id="detail-email" class="flex items-center gap-2"></span>
               <span id="detail-phone" class="flex items-center gap-2"></span>
+              <span id="detail-resume-chip" class="flex items-center gap-2"></span>
               <span id="detail-location" class="flex items-center gap-2"></span>
               <span id="detail-created" class="flex items-center gap-2"></span>
             </div>
@@ -522,6 +528,18 @@
               <div class="flex items-start gap-3">
                 <dt class="w-32 text-slate-400">Phone</dt>
                 <dd id="detail-phone-value" class="flex-1 break-words"></dd>
+              </div>
+              <div class="flex items-start gap-3">
+                <dt class="w-32 text-slate-400">Registration ID</dt>
+                <dd id="detail-registration-id" class="flex-1 break-words"></dd>
+              </div>
+              <div class="flex items-start gap-3">
+                <dt class="w-32 text-slate-400">Skill Test</dt>
+                <dd id="detail-skill-test" class="flex-1 break-words"></dd>
+              </div>
+              <div class="flex items-start gap-3">
+                <dt class="w-32 text-slate-400">Professional</dt>
+                <dd id="detail-professional" class="flex-1 break-words"></dd>
               </div>
               <div class="flex items-start gap-3">
                 <dt class="w-32 text-slate-400">Location</dt>
@@ -810,6 +828,7 @@
 
       const db = getFirestore(app);
       const registrationsRef = collection(db, "registrations");
+      const submissionsRef = collection(db, "submissions");
       const emailQueueRef = collection(db, "mailQueue");
 
       const SENDER_EMAIL = "skillbank0@gmail.com";
@@ -867,11 +886,13 @@
         activeFilter: "registered",
         searchQuery: "",
         unsubscribe: null,
+        unsubscribeSubmissions: null,
         selectedPersonId: null,
         selectedPerson: null,
         selectedTutorId: null,
         selectedTutor: null,
-        lastNotifiedTutorId: null
+        lastNotifiedTutorId: null,
+        submissions: new Map()
       };
 
       const navButtons = document.querySelectorAll(".nav-item");
@@ -905,11 +926,17 @@
       const detailName = document.getElementById("detail-name");
       const detailEmail = document.getElementById("detail-email");
       const detailPhone = document.getElementById("detail-phone");
+      const detailResumeChip = document.getElementById("detail-resume-chip");
+      const detailRegistrationId = document.getElementById("detail-registration-id");
       const detailLocation = document.getElementById("detail-location");
       const detailConnected = document.getElementById("detail-connected");
       const detailCreated = document.getElementById("detail-created");
       const detailEmailValue = document.getElementById("detail-email-value");
       const detailPhoneValue = document.getElementById("detail-phone-value");
+      const detailResumeValue = document.getElementById("detail-resume");
+      const detailReadyValue = document.getElementById("detail-ready");
+      const detailSkillTestValue = document.getElementById("detail-skill-test");
+      const detailProfessionalValue = document.getElementById("detail-professional");
       const detailLocationValue = document.getElementById("detail-location-value");
       const detailSource = document.getElementById("detail-source");
       const detailConsent = document.getElementById("detail-consent");
@@ -1014,6 +1041,227 @@
         );
       }
 
+      function formatSkillTestScore(value) {
+        const numeric =
+          typeof value === "number"
+            ? value
+            : value != null && value !== ""
+            ? Number.parseFloat(value)
+            : Number.NaN;
+        if (!Number.isFinite(numeric)) return "";
+        return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(1);
+      }
+
+      function parseNumericValue(value) {
+        if (typeof value === "number") {
+          return Number.isFinite(value) ? value : Number.NaN;
+        }
+        if (typeof value === "string") {
+          const cleaned = value.trim();
+          if (!cleaned) return Number.NaN;
+          const normalised = cleaned.replace(/[^0-9.+-]/g, "");
+          if (!normalised) return Number.NaN;
+          const parsed = Number.parseFloat(normalised);
+          return Number.isFinite(parsed) ? parsed : Number.NaN;
+        }
+        return Number.NaN;
+      }
+
+      function hydrateSubmission(docSnap) {
+        const data = docSnap.data() ?? {};
+
+        const scoreCandidates = [
+          data.correctCount,
+          data.correct_count,
+          data.readinessScore,
+          data.score,
+          data.totalScore,
+          data.resultScore,
+          data.overallScore,
+          data.rating
+        ];
+        let score = Number.NaN;
+        for (const candidate of scoreCandidates) {
+          const parsed = parseNumericValue(candidate);
+          if (Number.isFinite(parsed)) {
+            score = parsed;
+            break;
+          }
+        }
+
+        const ratingCandidates = [data.rating, data.average, data.meanScore];
+        let rating = Number.NaN;
+        for (const candidate of ratingCandidates) {
+          const parsed = parseNumericValue(candidate);
+          if (Number.isFinite(parsed)) {
+            rating = parsed;
+            break;
+          }
+        }
+
+        const passingCandidates = [
+          data.passingScore,
+          data.threshold,
+          data.minimumScore,
+          data.passMark,
+          data.passing
+        ];
+        let passingScore = Number.NaN;
+        for (const candidate of passingCandidates) {
+          const parsed = parseNumericValue(candidate);
+          if (Number.isFinite(parsed)) {
+            passingScore = parsed;
+            break;
+          }
+        }
+
+        const boolFrom = (value) =>
+          typeof value === "boolean" ? value : null;
+
+        const takenFlag =
+          boolFrom(data.taken) ??
+          boolFrom(data.completed) ??
+          boolFrom(data.submitted) ??
+          boolFrom(data.isComplete) ??
+          (Number.isFinite(score) ? true : null);
+
+        const readyFlag =
+          boolFrom(data.ready) ??
+          boolFrom(data.isReady) ??
+          boolFrom(data.readyToTeach) ??
+          boolFrom(data.passed) ??
+          boolFrom(data.isQualified) ??
+          null;
+
+        const statusRaw = typeof data.status === "string" ? data.status.toLowerCase() : "";
+
+        const linkKeyCandidates = [
+          docSnap.id,
+          data.code,
+          data.registrationId,
+          data.registrantId,
+          data.personId,
+          data.personID,
+          data.profileId,
+          data.profileID,
+          data.userId,
+          data.userID,
+          data.uid,
+          data.tutorId,
+          data.tutorID
+        ];
+        const linkKeys = new Set(
+          linkKeyCandidates
+            .map((value) => (typeof value === "string" || typeof value === "number" ? String(value).trim().toLowerCase() : ""))
+            .filter(Boolean)
+        );
+
+        const emailCandidates = [
+          data.email,
+          data.userEmail,
+          data.contactEmail,
+          data.loginEmail,
+          ...(Array.isArray(data.emails) ? data.emails : []),
+          ...(Array.isArray(data.contactEmails) ? data.contactEmails : [])
+        ];
+        const emails = new Set(
+          emailCandidates
+            .map((value) => (typeof value === "string" ? value.trim().toLowerCase() : ""))
+            .filter(Boolean)
+        );
+
+        const scoreValue = Number.isFinite(score) ? score : null;
+        const ratingValue = Number.isFinite(rating) ? rating : null;
+        const passingValue = Number.isFinite(passingScore) ? passingScore : null;
+
+        let ready = readyFlag;
+        if (ready == null && Number.isFinite(score) && Number.isFinite(passingScore)) {
+          ready = score >= passingScore;
+        }
+        if (ready == null && takenFlag === true && (Number.isFinite(score) || Number.isFinite(rating))) {
+          ready = true;
+        }
+
+        const status = statusRaw || (ready ? "ready" : takenFlag ? "completed" : "pending");
+
+        return {
+          id: docSnap.id,
+          score: scoreValue,
+          rating: ratingValue,
+          passingScore: passingValue,
+          taken: takenFlag ?? Boolean(scoreValue ?? ratingValue),
+          ready: ready ?? false,
+          status,
+          linkKeys,
+          emails
+        };
+      }
+
+      function getSkillTestBadge(skillTest = {}, { variant = "chip" } = {}) {
+        const hasTaken = Boolean(skillTest?.taken);
+        const scoreSource = Number.isFinite(skillTest?.score)
+          ? skillTest.score
+          : Number.isFinite(skillTest?.rating)
+          ? skillTest.rating
+          : null;
+        const scoreValue = formatSkillTestScore(scoreSource);
+        const starClass =
+          variant === "detail"
+            ? "h-4 w-4"
+            : variant === "meta" || variant === "mobile"
+            ? "h-3 w-3"
+            : "h-3.5 w-3.5";
+        const starSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="${starClass} text-amber-500" viewBox="0 0 24 24" fill="currentColor"><path d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111 5.518.4a.562.562 0 01.314.98l-4.204 3.6 1.285 5.385a.562.562 0 01-.84.61L12 16.347l-4.719 3.238a.562.562 0 01-.84-.61l1.285-5.386-4.204-3.6a.562.562 0 01.314-.98l5.518-.4L11.48 3.5z"/></svg>`;
+        const starsMarkup = hasTaken ? Array.from({ length: 4 }, () => starSvg).join("") : "";
+        const notTakenIconClass =
+          variant === "detail"
+            ? "h-4 w-4"
+            : variant === "meta" || variant === "mobile"
+            ? "h-3 w-3"
+            : "h-3.5 w-3.5";
+        const notTakenIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="${notTakenIconClass} text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3.75m0 3.75h.007v.007H12v-.007zM21 12A9 9 0 113 12a9 9 0 0118 0z"/></svg>`;
+        const readyLabel = "Ready to teach";
+
+        if (!hasTaken) {
+          if (variant === "detail") {
+            return `<span class="inline-flex items-center gap-2 text-slate-500">${notTakenIcon}<span>Test not taken</span></span>`;
+          }
+          if (variant === "meta") {
+            return `<span class="flex items-center gap-1 text-xs font-semibold text-slate-400">${notTakenIcon}<span>Test not taken</span></span>`;
+          }
+          if (variant === "mobile") {
+            return `<span class="slink-table-chip bg-slate-200/70 text-slate-600"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-3 w-3 text-slate-500\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M12 9v3.75m0 3.75h.007v.007H12v-.007zM21 12A9 9 0 113 12a9 9 0 0118 0z\"/></svg>Test not taken</span>`;
+          }
+          return `<span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500">${notTakenIcon}<span>Test not taken</span></span>`;
+        }
+
+        if (variant === "detail") {
+          const detailScore = scoreValue
+            ? `<span class="text-xs font-medium text-slate-500">Score: ${scoreValue}</span>`
+            : "";
+          return `<span class="inline-flex flex-wrap items-center gap-2 text-amber-600"><span class="flex items-center gap-1">${starsMarkup}</span><span class="text-sm font-semibold text-slate-700">${readyLabel}</span>${detailScore}</span>`;
+        }
+
+        if (variant === "meta") {
+          const metaScore = scoreValue
+            ? `<span class="text-[10px] font-medium text-slate-400">(Score ${scoreValue})</span>`
+            : "";
+          return `<span class="flex items-center gap-1 text-xs font-semibold text-amber-600"><span class="flex items-center gap-0.5">${starsMarkup}</span><span>${readyLabel}</span>${metaScore}</span>`;
+        }
+
+        if (variant === "mobile") {
+          const mobileScore = scoreValue
+            ? `<span class="text-[10px] font-semibold text-amber-700/80">Score: ${scoreValue}</span>`
+            : "";
+          return `<span class="slink-table-chip bg-amber-100 text-amber-700"><span class="flex items-center gap-0.5">${starsMarkup}</span><span>${readyLabel}</span>${mobileScore}</span>`;
+        }
+
+        const chipScore = scoreValue
+          ? `<span class="text-[10px] font-semibold text-amber-600/80">Score: ${scoreValue}</span>`
+          : "";
+        return `<span class="inline-flex items-center gap-2 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-600"><span class="flex items-center gap-0.5">${starsMarkup}</span><span>${readyLabel}</span>${chipScore}</span>`;
+      }
+
       function showToast(message, { tone = "success", timeout = 4000 } = {}) {
         if (!notificationRoot) return;
 
@@ -1061,7 +1309,9 @@
           "Registered",
           "Teach Skills",
           "Learn Skills",
-          "Source"
+          "Source",
+          "Skill Test Score",
+          "Skill Test Status"
         ];
 
         const rows = people.map((person) =>
@@ -1074,7 +1324,13 @@
             person.createdAtLabel,
             person.teachSkills.join("; "),
             person.learnSkills.join("; "),
-            person.source
+            person.source,
+            Number.isFinite(person.skillTest?.score)
+              ? person.skillTest.score
+              : Number.isFinite(person.skillTest?.rating)
+              ? person.skillTest.rating
+              : "",
+            person.skillTest?.taken ? "Completed" : "Not taken"
           ].map(escapeCsv).join(",")
         );
 
@@ -1094,6 +1350,142 @@
         const learnSkills = data.selectedSkill ? [data.selectedSkill] : [];
 
         const skills = [...new Set([...teachSkills, ...learnSkills])];
+
+        const resumeUrl =
+          data.resumeUrl ??
+          data.resumeLink ??
+          data.resume ??
+          data.cvUrl ??
+          data.cv ??
+          data.portfolioResume ??
+          "";
+        const resumeStatus =
+          data.resumeStatus ?? data.resume_state ?? data.resumeApprovalStatus ?? data.resumeState ?? "";
+        const resumeReady = Boolean(
+          data.readyForLinking ??
+            data.resumeApproved ??
+            data.resumeReady ??
+            data.professionalReady ??
+            data.isProfessional ??
+            data.professional ??
+            data.mentorReady ??
+            false
+        );
+        const resumeSubmitted = Boolean(resumeUrl);
+        const resumeUpdatedLabel = resumeSubmitted
+          ? parseCreatedAt(data.resumeUpdatedAt ?? data.resumeReviewedAt ?? data.resumeUpdated ?? null)
+          : "";
+        const isProfessional = Boolean(
+          data.isProfessional ?? data.professional ?? data.isMentor ?? data.profileType === "professional"
+        );
+
+        const linkKeyCandidates = [
+          docSnap.id,
+          data.code,
+          data.registrationId,
+          data.registrantId,
+          data.personId,
+          data.personID,
+          data.profileId,
+          data.profileID,
+          data.userId,
+          data.userID,
+          data.uid,
+          data.tutorId,
+          data.tutorID
+        ];
+        const linkKeys = new Set(
+          linkKeyCandidates
+            .map((value) =>
+              typeof value === "string" || typeof value === "number"
+                ? String(value).trim().toLowerCase()
+                : ""
+            )
+            .filter(Boolean)
+        );
+
+        const emailCandidates = [
+          data.email,
+          data.userEmail,
+          data.contactEmail,
+          data.loginEmail,
+          ...(Array.isArray(data.emails) ? data.emails : []),
+          ...(Array.isArray(data.contactEmails) ? data.contactEmails : [])
+        ];
+        const emails = new Set(
+          emailCandidates
+            .map((value) => (typeof value === "string" ? value.trim().toLowerCase() : ""))
+            .filter(Boolean)
+        );
+
+        const rawSkillTestScore =
+          typeof data.skillTestScore !== "undefined"
+            ? data.skillTestScore
+            : typeof data.skillTestRating !== "undefined"
+            ? data.skillTestRating
+            : typeof data.skillTestResult !== "undefined"
+            ? data.skillTestResult
+            : typeof data.skillAssessmentScore !== "undefined"
+            ? data.skillAssessmentScore
+            : typeof data.assessmentScore !== "undefined"
+            ? data.assessmentScore
+            : null;
+        const parsedSkillTestScore =
+          typeof rawSkillTestScore === "number"
+            ? rawSkillTestScore
+            : rawSkillTestScore != null && rawSkillTestScore !== ""
+            ? Number.parseFloat(rawSkillTestScore)
+            : Number.NaN;
+        const hasSkillTestScore = Number.isFinite(parsedSkillTestScore);
+        const normalizedSkillTestStatus =
+          typeof data.skillTestStatus === "string" ? data.skillTestStatus.toLowerCase() : "";
+        const skillTestTaken =
+          Boolean(
+            data.skillTestTaken ??
+              data.skillTestCompleted ??
+              data.skillTestPassed ??
+              data.hasTakenSkillTest ??
+              data.readyToTeach ??
+              data.readyForTeaching
+          ) ||
+          ["completed", "passed", "ready", "finished"].includes(normalizedSkillTestStatus) ||
+          hasSkillTestScore;
+        const skillTestPassingScore =
+          typeof data.skillTestPassingScore === "number"
+            ? data.skillTestPassingScore
+            : typeof data.skillTestPassingScore === "string"
+            ? Number.parseFloat(data.skillTestPassingScore)
+            : null;
+        const readyToTeach =
+          Boolean(
+            data.readyToTeach ??
+              data.skillTestPassed ??
+              data.skillTestReady ??
+              (skillTestTaken &&
+                (!Number.isFinite(skillTestPassingScore) ||
+                  (hasSkillTestScore && parsedSkillTestScore >= skillTestPassingScore)))
+          );
+        const skillTestStatus =
+          normalizedSkillTestStatus || (skillTestTaken ? "completed" : "pending");
+        const skillTestRatingValue =
+          typeof data.skillTestRating === "number"
+            ? data.skillTestRating
+            : typeof data.rating === "number"
+            ? data.rating
+            : null;
+        const normalizedSkillTestRating = Number.isFinite(skillTestRatingValue)
+          ? skillTestRatingValue
+          : hasSkillTestScore
+          ? parsedSkillTestScore
+          : null;
+
+        const baseSkillTest = {
+          taken: skillTestTaken,
+          status: skillTestStatus,
+          score: hasSkillTestScore ? parsedSkillTestScore : null,
+          rating: Number.isFinite(normalizedSkillTestRating) ? normalizedSkillTestRating : null,
+          ready: readyToTeach
+        };
 
         return {
           id: docSnap.id,
@@ -1117,6 +1509,20 @@
           skills,
           teachSkills,
           learnSkills,
+          resume: {
+            url: resumeUrl || "",
+            status: resumeStatus || "",
+            submitted: resumeSubmitted,
+            ready: resumeReady,
+            updatedAtLabel: resumeUpdatedLabel
+          },
+          readyForLinking: resumeReady,
+          readyToTeach,
+          skillTest: { ...baseSkillTest },
+          _skillTestBase: baseSkillTest,
+          linkKeys,
+          emails,
+          isProfessional,
           flags: {
             newSkill: data.source === "client-submission",
             suggested: data.source === "ai-suggestion"
@@ -1142,6 +1548,93 @@
           consent: typeof data.consent === "boolean" ? data.consent : null,
           source: data.source ?? ""
         };
+      }
+
+      function setsIntersect(a, b) {
+        if (!a || !b || !(a instanceof Set) || !(b instanceof Set)) return false;
+        if (a.size === 0 || b.size === 0) return false;
+        for (const value of a) {
+          if (b.has(value)) return true;
+        }
+        return false;
+      }
+
+      function pickBestSubmission(person) {
+        if (!state.submissions?.size) return null;
+        const personKeys = person.linkKeys instanceof Set ? person.linkKeys : new Set();
+        const personEmails = person.emails instanceof Set ? person.emails : new Set();
+
+        let bestSubmission = null;
+        let bestScore = Number.NEGATIVE_INFINITY;
+
+        state.submissions.forEach((submission) => {
+          const matchesId = setsIntersect(personKeys, submission.linkKeys);
+          const matchesEmail = setsIntersect(personEmails, submission.emails);
+          if (!matchesId && !matchesEmail) return;
+
+          let priorityScore = Number.NEGATIVE_INFINITY;
+          if (Number.isFinite(submission.score)) {
+            priorityScore = submission.score;
+          } else if (Number.isFinite(submission.rating)) {
+            priorityScore = submission.rating;
+          } else if (submission.ready) {
+            priorityScore = Number.POSITIVE_INFINITY;
+          }
+
+          if (priorityScore > bestScore) {
+            bestScore = priorityScore;
+            bestSubmission = submission;
+          }
+        });
+
+        return bestSubmission;
+      }
+
+      function applySubmissionsToPeople() {
+        if (!Array.isArray(state.people) || !state.people.length) return;
+
+        state.people.forEach((person) => {
+          const base = person._skillTestBase ?? person.skillTest ?? {};
+          const merged = {
+            taken: base.taken ?? false,
+            status: base.status ?? "",
+            score: Number.isFinite(base.score) ? base.score : null,
+            rating: Number.isFinite(base.rating) ? base.rating : null,
+            ready: base.ready ?? false
+          };
+
+          const submission = pickBestSubmission(person);
+
+          if (submission) {
+            if (Number.isFinite(submission.score)) {
+              merged.score = submission.score;
+            }
+            if (Number.isFinite(submission.rating)) {
+              merged.rating = submission.rating;
+            }
+            if (typeof submission.ready === "boolean") {
+              merged.ready = submission.ready;
+            }
+            if (typeof submission.taken === "boolean") {
+              merged.taken = submission.taken;
+            }
+            merged.status = submission.status || (merged.ready ? "ready" : merged.taken ? "completed" : "pending");
+            person.skillTestSubmissionId = submission.id;
+          } else {
+            merged.status = merged.status || (merged.ready ? "ready" : merged.taken ? "completed" : "pending");
+            person.skillTestSubmissionId = null;
+          }
+
+          person.skillTest = merged;
+          person.readyToTeach = Boolean(merged.ready);
+        });
+
+        if (state.selectedPersonId) {
+          const active = state.people.find((candidate) => candidate.id === state.selectedPersonId);
+          if (active) {
+            state.selectedPerson = active;
+          }
+        }
       }
 
       function applyFilter(data) {
@@ -1199,6 +1692,37 @@
                 ? "<span class=\"h-2 w-2 rounded-full bg-emerald-500\"></span>"
                 : "<span class=\"h-2 w-2 rounded-full bg-amber-500\"></span>";
 
+            const resume =
+              person.resume ?? {
+                url: "",
+                submitted: Boolean(person.readyForLinking),
+                ready: Boolean(person.readyForLinking),
+                status: "",
+                updatedAtLabel: ""
+              };
+
+            const readinessBadge = resume.ready
+              ? `<span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 12.75l6 6 9-13.5" /></svg>Ready to link</span>`
+              : resume.submitted
+              ? `<span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 6.75h13.5a2.25 2.25 0 012.25 2.25v8.25a2.25 2.25 0 01-2.25 2.25H6a3 3 0 01-3-3V6.75Z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3.75v3" /></svg>Resume submitted</span>`
+              : `<span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18 18 6m0 12L6 6" /></svg>No resume</span>`;
+            const skillTestBadge = getSkillTestBadge(person.skillTest);
+            const skillTestScoreValue = Number.isFinite(person.skillTest?.score)
+              ? formatSkillTestScore(person.skillTest.score)
+              : Number.isFinite(person.skillTest?.rating)
+              ? formatSkillTestScore(person.skillTest.rating)
+              : "";
+
+            const readinessMeta = resume.ready
+              ? `<span class="flex items-center gap-1 text-xs font-semibold text-emerald-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 12.75l6 6 9-13.5" /></svg>Ready to link</span>`
+              : resume.submitted
+              ? `<span class="flex items-center gap-1 text-xs font-semibold text-amber-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 6.75h13.5a2.25 2.25 0 012.25 2.25v8.25a2.25 2.25 0 01-2.25 2.25H6a3 3 0 01-3-3V6.75Z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3.75v3" /></svg>Resume submitted</span>`
+              : "";
+            const skillTestMeta = getSkillTestBadge(person.skillTest, { variant: "meta" });
+            const skillTestScoreMeta = skillTestScoreValue
+              ? `<span class="flex items-center gap-1 text-[11px] font-semibold text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.25 6.75h7.5m-7.5 3.75h3.75m-3.75 3.75h7.5M4.5 6.75h.008v.008H4.5V6.75Zm0 7.5h.008v.008H4.5v-.008Zm15-.75h.008v.008H19.5v-.008Zm0 7.5h.008v.008H19.5v-.008Z" /></svg>Score ${skillTestScoreValue}</span>`
+              : "";
+
             const skillsMarkup = person.skills
               .map(
                 (skill) =>
@@ -1215,7 +1739,16 @@
                 : "",
               person.status === "connected" && (connectedTutorName || person.connectedTutorId)
                 ? `<span class="slink-table-chip"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.5 6h2.25A2.25 2.25 0 0118 8.25v2.25M10.5 18H8.25A2.25 2.25 0 016 15.75V13.5M17.25 6.75 6.75 17.25" /></svg>Connected${connectedTutorName ? ` to ${connectedTutorName}` : ""}${connectedTutorLocation ? ` · ${connectedTutorLocation}` : ""}</span>`
-                : ""
+                : "",
+              resume.ready
+                ? `<span class="slink-table-chip bg-emerald-100 text-emerald-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 12.75l6 6 9-13.5" /></svg>Ready to link</span>`
+                : resume.submitted
+                ? `<span class="slink-table-chip bg-amber-100 text-amber-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 6.75h13.5a2.25 2.25 0 012.25 2.25v8.25a2.25 2.25 0 01-2.25 2.25H6a3 3 0 01-3-3V6.75Z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3.75v3" /></svg>Resume submitted</span>`
+                : "",
+              skillTestScoreValue
+                ? `<span class="slink-table-chip bg-slate-100 text-slate-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.25 6.75h7.5m-7.5 3.75h3.75m-3.75 3.75h7.5M4.5 6.75h.008v.008H4.5V6.75Zm0 7.5h.008v.008H4.5v-.008Zm15-.75h.008v.008H19.5v-.008Zm0 7.5h.008v.008H19.5v-.008Z" /></svg>Score ${skillTestScoreValue}</span>`
+                : "",
+              getSkillTestBadge(person.skillTest, { variant: "mobile" })
             ]
               .filter(Boolean)
               .join("");
@@ -1235,6 +1768,9 @@
                       person.status === "connected"
                         ? `<span class="text-xs font-medium text-emerald-600">Connected${connectedTutorName ? ` to ${connectedTutorName}` : ""}${connectedTutorLocation ? ` · ${connectedTutorLocation}` : ""}</span>`
                         : "",
+                      readinessMeta,
+                      skillTestMeta,
+                      skillTestScoreMeta,
                       person.createdAtLabel
                         ? `<span class="text-xs text-slate-400">Registered ${person.createdAtLabel}</span>`
                         : ""
@@ -1261,6 +1797,17 @@
                     ${statusIcon}
                     <span class="capitalize">${person.status}</span>
                   </span>
+                </td>
+                <td data-label="Readiness" class="px-6 py-4 align-top text-left text-sm text-slate-600 sm:text-center">
+                  <div class="flex flex-col items-start gap-2 sm:items-center">
+                    ${readinessBadge}
+                    ${skillTestBadge}
+                    ${
+                      skillTestScoreValue
+                        ? `<span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Score ${skillTestScoreValue}</span>`
+                        : ""
+                    }
+                  </div>
                 </td>
                 <td data-label="Actions" class="px-6 py-4 align-top text-left text-sm text-slate-600 sm:text-right">
                   <button
@@ -1500,6 +2047,7 @@
 
             state.people.sort((a, b) => b.createdAtValue - a.createdAtValue);
 
+            applySubmissionsToPeople();
             updateCounts();
             renderTable();
 
@@ -1515,6 +2063,35 @@
           (error) => {
             console.error("Realtime registration subscription failed", error);
             showToast("Realtime updates are unavailable. Showing latest snapshot.", { tone: "warning" });
+          }
+        );
+      }
+
+      function subscribeToSubmissions() {
+        if (state.unsubscribeSubmissions) state.unsubscribeSubmissions();
+        state.unsubscribeSubmissions = onSnapshot(
+          submissionsRef,
+          (snapshot) => {
+            const submissions = new Map();
+            snapshot.docs.forEach((docSnap) => {
+              const submission = hydrateSubmission(docSnap);
+              submissions.set(docSnap.id, submission);
+            });
+            state.submissions = submissions;
+
+            applySubmissionsToPeople();
+            updateCounts();
+            renderTable();
+
+            if (state.selectedPersonId) {
+              const active = state.people.find((person) => person.id === state.selectedPersonId);
+              if (active) {
+                renderDetail(active);
+              }
+            }
+          },
+          (error) => {
+            console.error("Realtime submissions subscription failed", error);
           }
         );
       }
@@ -1543,11 +2120,13 @@
 
         syncSidebarToViewport();
         subscribeToPeople();
+        subscribeToSubmissions();
         setActiveFilter(state.activeFilter);
       }
 
       window.addEventListener("beforeunload", () => {
         if (state.unsubscribe) state.unsubscribe();
+        if (state.unsubscribeSubmissions) state.unsubscribeSubmissions();
       });
 
       async function connectPerson(person, tutor) {
@@ -1724,6 +2303,21 @@
         detailPhone.innerHTML = person.phone
           ? `<svg class="h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 5.25a2.25 2.25 0 012.25-2.25h1.5c.473 0 .93.168 1.29.476l2.385 1.988a1.5 1.5 0 01.495 1.112v2.351a1.5 1.5 0 01-.44 1.06l-.877.877a.75.75 0 00-.073.974 10.45 10.45 0 003.799 3.798.75.75 0 00.974-.073l.877-.877a1.5 1.5 0 011.06-.44h2.351a1.5 1.5 0 011.112.495l1.988 2.385c.308.36.476.817.476 1.29v1.5A2.25 2.25 0 0118.75 21h-.5C9.335 21 2.5 14.165 2.5 5.75v-.5z"/></svg>${person.phone}`
           : "";
+        const resume = person.resume ?? {
+          url: "",
+          status: "",
+          submitted: Boolean(person.readyForLinking),
+          ready: Boolean(person.readyForLinking),
+          updatedAtLabel: ""
+        };
+
+        if (detailResumeChip) {
+          detailResumeChip.innerHTML = resume.ready
+            ? `<span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 12.75l6 6 9-13.5" /></svg>Ready to link</span>`
+            : resume.submitted
+            ? `<span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 6.75h13.5a2.25 2.25 0 012.25 2.25v8.25a2.25 2.25 0 01-2.25 2.25H6a3 3 0 01-3-3V6.75Z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3.75v3" /></svg>Resume submitted</span>`
+            : "";
+        }
         detailLocation.innerHTML = person.location
           ? `<svg class="h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 21.75c-4.5-5.25-6.75-8.625-6.75-11.25a6.75 6.75 0 1113.5 0c0 2.625-2.25 6-6.75 11.25Z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 12.75a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5Z"/></svg>${person.location}`
           : "";
@@ -1749,6 +2343,32 @@
           : "";
 
         detailEmailValue.textContent = person.email || "—";
+        if (detailRegistrationId) {
+          detailRegistrationId.textContent = person.id || "—";
+        }
+        if (detailResumeValue) {
+          const resumeMeta = [resume.status, resume.updatedAtLabel ? `Updated ${resume.updatedAtLabel}` : ""]
+            .filter(Boolean)
+            .join(" · ");
+          detailResumeValue.innerHTML = resume.url
+            ? `<a class="inline-flex items-center gap-2 text-slate-600 underline decoration-dotted underline-offset-2" href="${resume.url}" target="_blank" rel="noopener">View resume</a>$${resumeMeta ? `<span class="mt-1 block text-xs text-slate-400">${resumeMeta}</span>` : ""}`
+            : '<span class="text-slate-400">No resume submitted.</span>';
+        }
+        if (detailReadyValue) {
+          detailReadyValue.innerHTML = resume.ready
+            ? `<span class="inline-flex items-center gap-2 text-emerald-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 12.75l6 6 9-13.5" /></svg>Ready for linking</span>`
+            : resume.submitted
+            ? `<span class="inline-flex items-center gap-2 text-amber-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 6.75h13.5a2.25 2.25 0 012.25 2.25v8.25a2.25 2.25 0 01-2.25 2.25H6a3 3 0 01-3-3V6.75Z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3.75v3" /></svg>Awaiting review</span>`
+            : `<span class="inline-flex items-center gap-2 text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18 18 6m0 12L6 6" /></svg>Not submitted</span>`;
+        }
+        if (detailSkillTestValue) {
+          detailSkillTestValue.innerHTML = getSkillTestBadge(person.skillTest, { variant: "detail" });
+        }
+        if (detailProfessionalValue) {
+          detailProfessionalValue.innerHTML = person.isProfessional
+            ? `<span class="inline-flex items-center gap-2 text-emerald-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6M8.25 6h7.5M6 6h.008v.008H6V6z" /></svg>Professional profile</span>`
+            : `<span class="inline-flex items-center gap-2 text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 19.5a8.25 8.25 0 0115 0" /></svg>Not flagged</span>`;
+        }
         detailPhoneValue.innerHTML = person.phone
           ? `<a class="text-slate-600 underline decoration-dotted underline-offset-2" href="tel:${person.phone}">${person.phone}</a>`
           : "—";
