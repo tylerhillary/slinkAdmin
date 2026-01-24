@@ -293,6 +293,10 @@
               <span>Suggested Skill</span>
               <span class="badge" data-badge-count="suggested">0</span>
             </button>
+            <button class="nav-item" data-filter="mailed">
+              <span>Assessment Mailed</span>
+              <span class="badge" data-badge-count="mailed">0</span>
+            </button>
           </div>
         </nav>
         <div class="px-6 py-5 border-t border-slate-200">
@@ -385,6 +389,34 @@
                 </p>
                 <p class="summary-card-value" data-summary-value data-metric="pending">0</p>
               </div>
+              <div
+                class="summary-card"
+                data-summary-card="mailed"
+                role="button"
+                tabindex="0"
+                aria-pressed="false"
+              >
+                <p class="summary-card-label">
+                  Assessment Mail Sent
+                </p>
+                <p class="summary-card-value" data-summary-value data-metric="mailed">0</p>
+              </div>
+            </div>
+
+            <div
+              class="rounded-3xl border border-slate-200 bg-white shadow-lg shadow-slate-900/5"
+              id="mailed-section"
+            >
+              <div class="flex flex-col gap-3 border-b border-slate-100 px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 class="text-xl font-semibold text-slate-900">Professional Test Mailouts</h3>
+                  <p class="text-sm text-slate-500">Track which candidates received the assessment email and their test status.</p>
+                </div>
+              </div>
+              <div id="mailed-list" class="divide-y divide-slate-100">
+                <!-- populated dynamically -->
+              </div>
+              <p id="mailed-empty" class="px-6 py-6 text-sm text-slate-400">No candidates have been mailed yet.</p>
             </div>
 
             <div
@@ -457,6 +489,11 @@
                         class="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500"
                       >
                         Readiness
+                      </th>
+                      <th
+                        class="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500"
+                      >
+                        Email Sent
                       </th>
                       <th
                         class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500"
@@ -871,14 +908,16 @@
         "new-skill": (person) => person.flags.newSkill,
         "connected-skill": (person) => person.status === "connected",
         "pending-skill": (person) => person.status === "pending",
-        "suggested-skill": (person) => person.flags.suggested
+        "suggested-skill": (person) => person.flags.suggested,
+        mailed: (person) => Boolean(person.flags.mailed)
       };
 
       const SUMMARY_TO_FILTER = {
         registered: "registered",
         newSkill: "new-skill",
         connected: "connected-skill",
-        pending: "pending-skill"
+        pending: "pending-skill",
+        mailed: "mailed"
       };
 
       const state = {
@@ -892,7 +931,9 @@
         selectedTutorId: null,
         selectedTutor: null,
         lastNotifiedTutorId: null,
-        submissions: new Map()
+        submissions: new Map(),
+        emailedPersonIds: new Set(),
+        mailedPeople: []
       };
 
       const navButtons = document.querySelectorAll(".nav-item");
@@ -913,6 +954,88 @@
       const removeConfirmDefaultLabel = removeConfirmSubmit
         ? removeConfirmSubmit.textContent.trim() || "Delete person"
         : "Delete person";
+
+      const mailedSection = document.getElementById("mailed-section");
+      const mailedList = document.getElementById("mailed-list");
+      const mailedEmpty = document.getElementById("mailed-empty");
+
+      function renderMailedList() {
+        if (!mailedSection || !mailedList || !mailedEmpty) return;
+
+        const mailed = state.mailedPeople;
+        const isMailedFilter = state.activeFilter === "mailed";
+
+        mailedSection.classList.toggle("hidden", !isMailedFilter);
+
+        if (!isMailedFilter) {
+          return;
+        }
+
+        if (!mailed.length) {
+          mailedList.innerHTML = "";
+          mailedEmpty.classList.remove("hidden");
+          return;
+        }
+
+        mailedEmpty.classList.add("hidden");
+        mailedList.innerHTML = mailed
+          .map((person) => {
+            const scoreValue = Number.isFinite(person.skillTest?.score)
+              ? formatSkillTestScore(person.skillTest.score)
+              : Number.isFinite(person.skillTest?.rating)
+              ? formatSkillTestScore(person.skillTest.rating)
+              : null;
+            const scoreMarkup = scoreValue
+              ? `<span class="text-xs font-semibold text-emerald-600">Score ${scoreValue}</span>`
+              : '<span class="text-xs text-slate-400">No score recorded yet</span>';
+            const mailedOn = person.mailedAtLabel
+              ? `<span class="text-xs text-slate-400">Mailed ${person.mailedAtLabel}</span>`
+              : "";
+
+            return `
+              <div class="flex items-center justify-between gap-4 px-6 py-4">
+                <div>
+                  <p class="text-sm font-semibold text-slate-900">${person.name || "Unnamed candidate"}</p>
+                  <p class="text-xs text-slate-500">${person.email || "No email"}</p>
+                </div>
+                <div class="flex flex-col items-end gap-1 text-right">
+                  ${scoreMarkup}
+                  ${mailedOn}
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      async function updateMailedStatus(personId, mailed) {
+        const checkbox = document.querySelector(`input[data-email-checkbox="${personId}"]`);
+        const previousState = state.emailedPersonIds.has(personId);
+
+        if (mailed) {
+          state.emailedPersonIds.add(personId);
+        } else {
+          state.emailedPersonIds.delete(personId);
+        }
+
+        try {
+          await updateDoc(doc(registrationsRef, personId), {
+            mailed,
+            mailedAt: mailed ? serverTimestamp() : null
+          });
+        } catch (error) {
+          console.error("Failed to update mailed status", error);
+          if (mailed) {
+            state.emailedPersonIds.delete(personId);
+          } else if (previousState) {
+            state.emailedPersonIds.add(personId);
+          }
+          if (checkbox) {
+            checkbox.checked = previousState;
+          }
+          showToast("Failed to update mailed status. Try again.", { tone: "error" });
+        }
+      }
 
       const sidebar = document.getElementById("sidebar");
       const sidebarOverlay = document.getElementById("sidebar-overlay");
@@ -1525,8 +1648,10 @@
           isProfessional,
           flags: {
             newSkill: data.source === "client-submission",
-            suggested: data.source === "ai-suggestion"
+            suggested: data.source === "ai-suggestion",
+            mailed: Boolean(data.mailed)
           },
+          mailedAtLabel: parseCreatedAt(data.mailedAt),
           connectedTutorId: data.connectedTutorId ?? "",
           connectedTutorName: data.connectedTutorName ?? "",
           connectedTutorLocation: data.connectedTutorLocation ?? "",
@@ -1665,11 +1790,12 @@
 
       function renderTable() {
         const filtered = applySearch(applyFilter(state.people));
+        const showRowDetails = state.activeFilter !== "registered";
 
         if (!filtered.length) {
           tableBody.innerHTML = `
             <tr class="slink-table-empty">
-              <td data-label="No Records" colspan="4" class="px-6 py-16 text-center text-sm text-slate-400">
+              <td data-label="No Records" colspan="6" class="px-6 py-16 text-center text-sm text-slate-400">
                 No records match the current filters. Adjust the criteria to continue monitoring skills.
               </td>
             </tr>
@@ -1701,57 +1827,68 @@
                 updatedAtLabel: ""
               };
 
-            const readinessBadge = resume.ready
+            const readinessBadge = !showRowDetails
+              ? ""
+              : resume.ready
               ? `<span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 12.75l6 6 9-13.5" /></svg>Ready to link</span>`
               : resume.submitted
               ? `<span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 6.75h13.5a2.25 2.25 0 012.25 2.25v8.25a2.25 2.25 0 01-2.25 2.25H6a3 3 0 01-3-3V6.75Z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3.75v3" /></svg>Resume submitted</span>`
               : `<span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18 18 6m0 12L6 6" /></svg>No resume</span>`;
-            const skillTestBadge = getSkillTestBadge(person.skillTest);
-            const skillTestScoreValue = Number.isFinite(person.skillTest?.score)
-              ? formatSkillTestScore(person.skillTest.score)
-              : Number.isFinite(person.skillTest?.rating)
-              ? formatSkillTestScore(person.skillTest.rating)
+            const skillTestBadge = showRowDetails ? getSkillTestBadge(person.skillTest) : "";
+            const isEmailSent = Boolean(person.flags.mailed);
+            const skillTestScoreValue = showRowDetails
+              ? Number.isFinite(person.skillTest?.score)
+                ? formatSkillTestScore(person.skillTest.score)
+                : Number.isFinite(person.skillTest?.rating)
+                ? formatSkillTestScore(person.skillTest.rating)
+                : ""
               : "";
 
-            const readinessMeta = resume.ready
+            const readinessMeta = !showRowDetails
+              ? ""
+              : resume.ready
               ? `<span class="flex items-center gap-1 text-xs font-semibold text-emerald-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 12.75l6 6 9-13.5" /></svg>Ready to link</span>`
               : resume.submitted
               ? `<span class="flex items-center gap-1 text-xs font-semibold text-amber-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 6.75h13.5a2.25 2.25 0 012.25 2.25v8.25a2.25 2.25 0 01-2.25 2.25H6a3 3 0 01-3-3V6.75Z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3.75v3" /></svg>Resume submitted</span>`
               : "";
-            const skillTestMeta = getSkillTestBadge(person.skillTest, { variant: "meta" });
-            const skillTestScoreMeta = skillTestScoreValue
+            const skillTestMeta = showRowDetails ? getSkillTestBadge(person.skillTest, { variant: "meta" }) : "";
+            const skillTestScoreMeta = showRowDetails && skillTestScoreValue
               ? `<span class="flex items-center gap-1 text-[11px] font-semibold text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.25 6.75h7.5m-7.5 3.75h3.75m-3.75 3.75h7.5M4.5 6.75h.008v.008H4.5V6.75Zm0 7.5h.008v.008H4.5v-.008Zm15-.75h.008v.008H19.5v-.008Zm0 7.5h.008v.008H19.5v-.008Z" /></svg>Score ${skillTestScoreValue}</span>`
               : "";
 
-            const skillsMarkup = person.skills
-              .map(
-                (skill) =>
-                  `<span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">${skill}</span>`
-              )
-              .join("\n");
+            const skillsMarkup = showRowDetails
+              ? person.skills
+                  .map(
+                    (skill) =>
+                      `<span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">${skill}</span>`
+                  )
+                  .join("\n")
+              : '<span class="text-xs font-medium text-slate-400">Select a registrant to view skills</span>';
 
-            const mobileMeta = [
-              person.location
-                ? `<span class="slink-table-chip"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>${person.location}</span>`
-                : "",
-              person.createdAtLabel
-                ? `<span class="slink-table-chip"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l2.5 2.5 2.5-2.5" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 3.75h10.5a2.25 2.25 0 012.25 2.25v11.25a2.25 2.25 0 01-2.25 2.25H6.75a2.25 2.25 0 01-2.25-2.25V6a2.25 2.25 0 012.25-2.25z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 9h10.5" /></svg>Added ${person.createdAtLabel}</span>`
-                : "",
-              person.status === "connected" && (connectedTutorName || person.connectedTutorId)
-                ? `<span class="slink-table-chip"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.5 6h2.25A2.25 2.25 0 0118 8.25v2.25M10.5 18H8.25A2.25 2.25 0 016 15.75V13.5M17.25 6.75 6.75 17.25" /></svg>Connected${connectedTutorName ? ` to ${connectedTutorName}` : ""}${connectedTutorLocation ? ` · ${connectedTutorLocation}` : ""}</span>`
-                : "",
-              resume.ready
-                ? `<span class="slink-table-chip bg-emerald-100 text-emerald-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 12.75l6 6 9-13.5" /></svg>Ready to link</span>`
-                : resume.submitted
-                ? `<span class="slink-table-chip bg-amber-100 text-amber-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 6.75h13.5a2.25 2.25 0 012.25 2.25v8.25a2.25 2.25 0 01-2.25 2.25H6a3 3 0 01-3-3V6.75Z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3.75v3" /></svg>Resume submitted</span>`
-                : "",
-              skillTestScoreValue
-                ? `<span class="slink-table-chip bg-slate-100 text-slate-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.25 6.75h7.5m-7.5 3.75h3.75m-3.75 3.75h7.5M4.5 6.75h.008v.008H4.5V6.75Zm0 7.5h.008v.008H4.5v-.008Zm15-.75h.008v.008H19.5v-.008Zm0 7.5h.008v.008H19.5v-.008Z" /></svg>Score ${skillTestScoreValue}</span>`
-                : "",
-              getSkillTestBadge(person.skillTest, { variant: "mobile" })
-            ]
-              .filter(Boolean)
-              .join("");
+            const mobileMeta = showRowDetails
+              ? [
+                  person.location
+                    ? `<span class="slink-table-chip"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>${person.location}</span>`
+                    : "",
+                  person.createdAtLabel
+                    ? `<span class="slink-table-chip"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l2.5 2.5 2.5-2.5" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 3.75h10.5a2.25 2.25 0 012.25 2.25v11.25a2.25 2.25 0 01-2.25 2.25H6.75a2.25 2.25 0 01-2.25-2.25V6a2.25 2.25 0 012.25-2.25z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 9h10.5" /></svg>Added ${person.createdAtLabel}</span>`
+                    : "",
+                  person.status === "connected" && (connectedTutorName || person.connectedTutorId)
+                    ? `<span class="slink-table-chip"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.5 6h2.25A2.25 2.25 0 0118 8.25v2.25M10.5 18H8.25A2.25 2.25 0 016 15.75V13.5M17.25 6.75 6.75 17.25" /></svg>Connected${connectedTutorName ? ` to ${connectedTutorName}` : ""}${connectedTutorLocation ? ` · ${connectedTutorLocation}` : ""}</span>`
+                    : "",
+                  resume.ready
+                    ? `<span class="slink-table-chip bg-emerald-100 text-emerald-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 12.75l6 6 9-13.5" /></svg>Ready to link</span>`
+                    : resume.submitted
+                    ? `<span class="slink-table-chip bg-amber-100 text-amber-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 6.75h13.5a2.25 2.25 0 012.25 2.25v8.25a2.25 2.25 0 01-2.25 2.25H6a3 3 0 01-3-3V6.75Z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3.75v3" /></svg>Resume submitted</span>`
+                    : "",
+                  skillTestScoreValue
+                    ? `<span class="slink-table-chip bg-slate-100 text-slate-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.25 6.75h7.5m-7.5 3.75h3.75m-3.75 3.75h7.5M4.5 6.75h.008v.008H4.5V6.75Zm0 7.5h.008v.008H4.5v-.008Zm15-.75h.008v.008H19.5v-.008Zm0 7.5h.008v.008H19.5v-.008Z" /></svg>Score ${skillTestScoreValue}</span>`
+                    : "",
+                  getSkillTestBadge(person.skillTest, { variant: "mobile" })
+                ]
+                  .filter(Boolean)
+                  .join("")
+              : "";
 
             return `
               <tr class="group cursor-pointer transition hover:bg-slate-50/70" data-person-id="${person.id}">
@@ -1793,21 +1930,37 @@
                   </div>
                 </td>
                 <td data-label="Status" class="px-6 py-4 align-top text-left text-sm text-slate-600 sm:text-center">
-                  <span class="${getStatusPillClasses(person.status)}">
-                    ${statusIcon}
-                    <span class="capitalize">${person.status}</span>
-                  </span>
+                  ${
+                    showRowDetails
+                      ? `<span class="${getStatusPillClasses(person.status)}">${statusIcon}<span class="capitalize">${person.status}</span></span>`
+                      : '<span class="text-xs font-medium text-slate-400">Select to view status</span>'
+                  }
                 </td>
                 <td data-label="Readiness" class="px-6 py-4 align-top text-left text-sm text-slate-600 sm:text-center">
-                  <div class="flex flex-col items-start gap-2 sm:items-center">
-                    ${readinessBadge}
-                    ${skillTestBadge}
-                    ${
-                      skillTestScoreValue
-                        ? `<span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Score ${skillTestScoreValue}</span>`
-                        : ""
-                    }
-                  </div>
+                  ${
+                    showRowDetails
+                      ? `<div class="flex flex-col items-start gap-2 sm:items-center">
+                          ${readinessBadge}
+                          ${skillTestBadge}
+                          ${
+                            skillTestScoreValue
+                              ? `<span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Score ${skillTestScoreValue}</span>`
+                              : ""
+                          }
+                        </div>`
+                      : '<span class="text-xs font-medium text-slate-400">Open profile for readiness</span>'
+                  }
+                </td>
+                <td data-label="Email Sent" class="px-6 py-4 align-top text-left text-sm text-slate-600 sm:text-center">
+                  <label class="inline-flex items-center gap-2 text-xs text-slate-500">
+                    <input
+                      type="checkbox"
+                      class="email-sent-checkbox h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                      data-email-checkbox="${person.id}"
+                      ${isEmailSent ? "checked" : ""}
+                    />
+                    <span class="font-medium">Mailed</span>
+                  </label>
                 </td>
                 <td data-label="Actions" class="px-6 py-4 align-top text-left text-sm text-slate-600 sm:text-right">
                   <button
@@ -1898,6 +2051,7 @@
         });
 
         renderTable();
+        renderMailedList();
       }
 
       async function removePerson(id) {
@@ -1931,6 +2085,7 @@
             if (person.status === "connected") accumulator.connected += 1;
             if (person.status === "pending") accumulator.pending += 1;
             if (person.flags.suggested) accumulator.suggested += 1;
+            if (person.flags.mailed) accumulator.mailed += 1;
             return accumulator;
           },
           {
@@ -1938,7 +2093,8 @@
             newSkill: 0,
             connected: 0,
             pending: 0,
-            suggested: 0
+            suggested: 0,
+            mailed: 0
           }
         );
 
@@ -1949,12 +2105,23 @@
 
           const metricValue = counts[key] ?? 0;
           valueNode.textContent = formatInteger(metricValue);
+
+          if (key === "registered") {
+            const mailedCount = counts.mailed ?? 0;
+            const tooltip = mailedCount
+              ? `${formatInteger(metricValue)} total, ${formatInteger(mailedCount)} mailed`
+              : `${formatInteger(metricValue)} total`;
+            card.setAttribute("title", tooltip);
+          }
         });
 
         document.querySelectorAll("[data-badge-count]").forEach((badge) => {
           const key = badge.getAttribute("data-badge-count");
           badge.textContent = formatInteger(counts[key] ?? 0);
         });
+
+        state.mailedPeople = state.people.filter((person) => person.flags.mailed);
+        renderMailedList();
       }
 
       navButtons.forEach((button) => {
@@ -2018,6 +2185,14 @@
         resetButton.addEventListener("click", resetFilters);
       }
 
+      tableBody.addEventListener("change", (event) => {
+        const checkbox = event.target.closest("input[data-email-checkbox]");
+        if (!checkbox) return;
+        const personId = checkbox.dataset.emailCheckbox;
+        if (!personId) return;
+        updateMailedStatus(personId, checkbox.checked);
+      });
+
       tableBody.addEventListener("click", (event) => {
         const removeTrigger = event.target.closest("button[data-action=\"remove\"]");
         if (removeTrigger) {
@@ -2026,6 +2201,16 @@
           if (person) {
             openRemoveConfirm(person);
           }
+          return;
+        }
+
+        const checkbox = event.target.closest("input[data-email-checkbox]");
+        if (checkbox) {
+          return;
+        }
+
+        const checkboxLabel = event.target.closest("label");
+        if (checkboxLabel && checkboxLabel.querySelector("input[data-email-checkbox]")) {
           return;
         }
 
@@ -2292,13 +2477,52 @@
           .replace("bg-amber-50", "bg-amber-50 text-amber-700");
 
         detailStatus.className = statusClasses;
-        detailStatus.innerHTML = `<span class=\"h-2 w-2 rounded-full ${
+        detailStatus.innerHTML = `<span class="h-2 w-2 rounded-full ${
           person.status === "connected" ? "bg-emerald-500" : "bg-amber-500"
-        }\"></span><span class=\"capitalize\">${person.status}</span>`;
+        }"></span><span class="capitalize">${person.status}</span>`;
 
+        const safeName = person.name?.trim() || "Candidate";
+        const registrationCode = person.id || "0000";
         detailName.textContent = person.name;
+
+        const mailSubject = encodeURIComponent("Complete Your Professional Assessment");
+        const mailBody = encodeURIComponent(
+          [
+            `Dear ${safeName},`,
+            "",
+            "Thank you for registering with Slink. We are pleased to have you move forward in our selection process.",
+            "",
+            "To better understand your skills and expertise, the next step is to complete a mandatory Professional Assessment. This test is designed to evaluate your proficiency and ensure a great fit for our current opportunities.",
+            "",
+            "Assessment Details",
+            `Verification Code: ${registrationCode}`,
+            "",
+            "Access Link: https://slinkquest.vercel.app",
+            "",
+            "Instructions for Completion",
+            "Click the link above to access the secure testing portal.",
+            `When prompted, enter your unique verification code: ${registrationCode}.`,
+            "Ensure you are in a quiet environment with a stable internet connection before beginning.",
+            "The assessment should take approximately [Number] minutes to complete.",
+            "",
+            "Please ensure you complete this step by [Date/Time] to keep your application active. If you encounter any technical difficulties, please reply to this email, and our support team will assist you.",
+            "",
+            "We look forward to reviewing your results.",
+            "",
+            "Best regards,",
+            "",
+            "The Slink Talent Team",
+            "Slink – https://slinkquest.vercel.app",
+            "Email: skillbank0@gmail.com"
+          ].join("\n")
+        );
+
+        const learnerMailHref = person.email
+          ? `mailto:${encodeURIComponent(person.email)}?subject=${mailSubject}&body=${mailBody}`
+          : "";
+
         detailEmail.innerHTML = person.email
-          ? `<svg class="h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 6.75l7.5 4.5 7.5-4.5"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 6.75v10.5a1.5 1.5 0 012.25 1.5h13.5a1.5 1.5 0 011.5-1.5V6.75"/></svg>${person.email}`
+          ? `<svg class="h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 6.75l7.5 4.5 7.5-4.5"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 6.75v10.5a1.5 1.5 0 012.25 1.5h13.5a1.5 1.5 0 011.5-1.5V6.75"/></svg><a class="underline decoration-dotted underline-offset-2 text-slate-600 hover:text-slate-900" href="${learnerMailHref}">${person.email}</a>`
           : "";
         detailPhone.innerHTML = person.phone
           ? `<svg class="h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 5.25a2.25 2.25 0 012.25-2.25h1.5c.473 0 .93.168 1.29.476l2.385 1.988a1.5 1.5 0 01.495 1.112v2.351a1.5 1.5 0 01-.44 1.06l-.877.877a.75.75 0 00-.073.974 10.45 10.45 0 003.799 3.798.75.75 0 00.974-.073l.877-.877a1.5 1.5 0 011.06-.44h2.351a1.5 1.5 0 011.112.495l1.988 2.385c.308.36.476.817.476 1.29v1.5A2.25 2.25 0 0118.75 21h-.5C9.335 21 2.5 14.165 2.5 5.75v-.5z"/></svg>${person.phone}`
@@ -2342,7 +2566,11 @@
           ? `<svg class=\"h-4 w-4 text-slate-400\" xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M6.75 3.75v2.25M17.25 3.75v2.25M3.75 9h16.5M5.25 6h13.5a1.5 1.5 0 011.5 1.5v11.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5V7.5A1.5 1.5 0 015.25 6Zm0 6h4.5v4.5H5.25V12Z\"/></svg>${person.createdAtLabel}`
           : "";
 
-        detailEmailValue.textContent = person.email || "—";
+        if (detailEmailValue) {
+          detailEmailValue.innerHTML = person.email
+            ? `<a class="break-words text-slate-600 underline decoration-dotted underline-offset-2 hover:text-slate-900" href="${learnerMailHref}">${person.email}</a>`
+            : "—";
+        }
         if (detailRegistrationId) {
           detailRegistrationId.textContent = person.id || "—";
         }
