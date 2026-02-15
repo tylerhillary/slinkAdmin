@@ -14,6 +14,7 @@
     <style>
       body {
         font-family: "Inter", sans-serif;
+        -webkit-font-smoothing: antialiased;
       }
       .scrollbar-thin::-webkit-scrollbar {
         width: 6px;
@@ -23,490 +24,401 @@
         border-radius: 9999px;
       }
 
-      @media (max-width: 640px) {
-        .slink-table thead {
+      /* Athena-inspired styles */
+      .athena-sidebar {
+        background-color: #f8fafc;
+        border-right: 1px solid #e2e8f0;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .athena-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #64748b;
+        transition: all 0.2s ease;
+      }
+      .athena-nav-item:hover {
+        background-color: #f1f5f9;
+        color: #0f172a;
+      }
+      .athena-nav-item.active {
+        background-color: #fff;
+        color: #0f172a;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid #e2e8f0;
+      }
+      .athena-card {
+        background: white;
+        border-radius: 1rem;
+        border: 1px solid #f1f5f9;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      }
+      .athena-gradient-card {
+        background: linear-gradient(135deg, #fff5f7 0%, #f0f4ff 100%);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+      @media (min-width: 640px) {
+        .athena-gradient-card {
+          flex-direction: row;
+          justify-content: space-between;
+          align-items: center;
+        }
+      }
+      .athena-table th {
+        background-color: #f8fafc;
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        padding: 0.75rem 1.5rem;
+      }
+      .athena-table td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #f1f5f9;
+      }
+      .athena-status-pill {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .status-completed { background-color: #dcfce7; color: #166534; }
+      .status-pending { background-color: #fef9c3; color: #854d0e; }
+      .status-overdue { background-color: #fee2e2; color: #991b1b; }
+
+      /* Mature Table Responsiveness */
+      @media (max-width: 1023px) {
+        .athena-table thead {
           display: none;
         }
-
-        .slink-table,
-        .slink-table tr,
-        .slink-table td {
+        .athena-table, .athena-table tbody, .athena-table tr {
           display: block;
           width: 100%;
         }
-
-        .slink-table tbody {
-          display: grid;
-          width: 100%;
-          gap: 1.25rem;
+        .athena-table tr {
+          margin-bottom: 1rem;
+          border: 1px solid #f1f5f9;
+          border-radius: 1rem;
+          padding: 1rem;
+          background: white;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
-
-        .slink-table tr {
-          margin: 0;
-          border-radius: 1.5rem;
-          border: 1px solid rgb(226 232 240 / 0.75);
-          background: linear-gradient(135deg, rgb(248 250 252), rgb(255 255 255));
-          box-shadow: 0 20px 48px -22px rgb(15 23 42 / 0.55);
-          overflow: hidden;
-          position: relative;
+        .athena-table td {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0.5rem 0;
+          border-bottom: 1px solid #f8fafc;
+          text-align: right;
         }
-
-        .slink-table tr::before {
-          content: "";
-          position: absolute;
-          inset: 0 0 auto 0;
-          height: 3px;
-          background: linear-gradient(90deg, rgb(15 118 110), rgb(14 165 233));
+        .athena-table td:last-child {
+          border-bottom: none;
+          padding-top: 1rem;
         }
-
-        .slink-table td {
-          padding: 1.05rem 1.25rem;
-          position: relative;
-        }
-
-        .slink-table td:not(:last-child) {
-          border-bottom: 1px solid rgb(226 232 240 / 0.85);
-        }
-
-        .slink-table td::before {
+        .athena-table td::before {
           content: attr(data-label);
-          display: block;
-          margin-bottom: 0.35rem;
-          font-size: 0.7rem;
-          font-weight: 700;
-          letter-spacing: 0.08em;
+          font-weight: 600;
+          font-size: 0.75rem;
+          color: #64748b;
           text-transform: uppercase;
-          color: rgb(100 116 139);
+          text-align: left;
+          flex: 1;
         }
-
-        .slink-table td[data-label="Actions"] {
+        .athena-table td > * {
+          flex: 1;
           display: flex;
           justify-content: flex-end;
         }
-
-        .slink-table td[data-label="Actions"] button {
+        /* Special handling for certain columns */
+        .athena-table td[data-label="Registrant"] {
+          flex-direction: column;
+          align-items: flex-start;
+          text-align: left;
+        }
+        .athena-table td[data-label="Registrant"]::before {
+          margin-bottom: 0.5rem;
+        }
+        .athena-table td[data-label="Registrant"] > div {
+          justify-content: flex-start;
           width: 100%;
-          max-width: 14rem;
-          margin-left: auto;
-        }
-
-        .slink-table-chip {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.35rem;
-          padding: 0.35rem 0.65rem;
-          border-radius: 9999px;
-          background: rgba(15, 23, 42, 0.08);
-          color: rgb(71 85 105);
-          font-size: 0.7rem;
-          font-weight: 600;
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
-        }
-
-        .slink-table-chip svg {
-          width: 0.75rem;
-          height: 0.75rem;
-        }
-
-        .slink-table-empty td {
-          border: 1px dashed rgb(203 213 225);
-          border-radius: 1.5rem;
-          background: rgb(248 250 252);
         }
       }
 
       .summary-card {
         position: relative;
         overflow: hidden;
-        padding: 1.75rem;
-        border-radius: 1.75rem;
-        border: 1px solid rgba(148, 163, 184, 0.35);
-        background: linear-gradient(145deg, rgba(248, 250, 252, 0.96), #ffffff);
-        box-shadow: 0 18px 32px -22px rgba(15, 23, 42, 0.25);
+        padding: 1.5rem;
+        border-radius: 1rem;
+        border: 1px solid #f1f5f9;
+        background: white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         cursor: pointer;
-        transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
-        color: #0f172a;
-        --summary-card-accent: #6366f1;
-        --summary-card-value-color: #0f172a;
+        transition: all 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
       }
 
-      .summary-card[data-summary-card="registered"] {
-        --summary-card-accent: #6366f1;
-      }
-
-      .summary-card[data-summary-card="newSkill"] {
-        --summary-card-accent: #38bdf8;
-      }
-
-      .summary-card[data-summary-card="connected"] {
-        --summary-card-accent: #34d399;
-        --summary-card-value-color: #047857;
-      }
-
-      .summary-card[data-summary-card="pending"] {
-        --summary-card-accent: #f59e0b;
-        --summary-card-value-color: #b45309;
-      }
-
-      .summary-card::after {
-        content: "";
-        position: absolute;
-        inset: -50% -45% auto 30%;
-        height: 160%;
-        background: linear-gradient(135deg, rgba(148, 163, 184, 0.12), rgba(226, 232, 240, 0.04));
-        opacity: 0;
-        transform: translate3d(0, 14%, 0) scale(0.95);
-        transition: opacity 0.35s ease, transform 0.35s ease;
-      }
-
-      .summary-card:hover::after,
-      .summary-card:focus-visible::after,
-      .summary-card.summary-card--active::after {
-        opacity: 1;
-        transform: translate3d(0, 0, 0) scale(1);
-      }
-
-      .summary-card:focus-visible {
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.3), 0 24px 44px -18px rgba(15, 23, 42, 0.55);
-      }
-
-      .summary-card:hover,
-      .summary-card:focus-visible {
-        background: linear-gradient(150deg, rgba(2, 6, 23, 0.95), rgba(15, 23, 42, 0.95) 55%, rgba(2, 132, 199, 0.22));
-        border-color: rgba(15, 23, 42, 0.55);
-        color: rgba(241, 245, 249, 0.95);
-        transform: translateY(-6px);
-        box-shadow: 0 26px 46px -20px rgba(15, 23, 42, 0.6);
+      .summary-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
       }
 
       .summary-card.summary-card--active {
-        background: linear-gradient(160deg, rgba(2, 6, 23, 0.96), rgba(15, 23, 42, 0.95) 55%, var(--summary-card-accent));
-        border-color: rgba(15, 23, 42, 0.75);
-        color: rgba(241, 245, 249, 0.96);
-        transform: translateY(-6px);
-        box-shadow: 0 28px 52px -18px rgba(15, 23, 42, 0.65);
+        border-color: #6366f1;
+        outline: 2px solid #6366f1;
+        background-color: #f5f7ff;
       }
 
       .summary-card-label {
-        display: block;
-        font-size: 0.75rem;
-        font-weight: 600;
-        letter-spacing: 0.24em;
-        text-transform: uppercase;
-        color: rgba(100, 116, 139, 0.9);
-        transition: color 0.3s ease;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #64748b;
       }
 
       .summary-card-value {
-        margin-top: 0.75rem;
-        font-size: clamp(1.9rem, 3vw, 2.5rem);
-        font-weight: 600;
-        line-height: 1.1;
-        color: var(--summary-card-value-color);
-        transition: color 0.3s ease;
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #0f172a;
       }
 
-      .summary-card:hover .summary-card-label,
-      .summary-card:focus-visible .summary-card-label,
-      .summary-card.summary-card--active .summary-card-label {
-        color: rgba(241, 245, 249, 0.9);
+      .summary-card-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.5rem;
       }
 
-      .summary-card:hover .summary-card-value,
-      .summary-card:focus-visible .summary-card-value,
-      .summary-card.summary-card--active .summary-card-value {
-        color: var(--summary-card-accent);
+      /* Mobile Header */
+      .mobile-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 1.5rem;
+        background: white;
+        border-bottom: 1px solid #e2e8f0;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+      @media (min-width: 1024px) {
+        .mobile-header {
+          display: none;
+        }
       }
 
-      .summary-card .summary-card-value[data-metric="connected"] {
-        color: #047857;
-      }
-
-      .summary-card .summary-card-value[data-metric="pending"] {
-        color: #b45309;
-      }
-
-      .summary-card:hover .summary-card-value[data-metric],
-      .summary-card:focus-visible .summary-card-value[data-metric],
-      .summary-card.summary-card--active .summary-card-value[data-metric] {
-        color: rgba(241, 245, 249, 0.96);
+      #sidebar-overlay {
+        background-color: rgba(15, 23, 42, 0.5);
+        backdrop-filter: blur(4px);
+        transition: opacity 0.3s ease;
       }
     </style>
   </head>
-  <body class="h-full text-slate-700">
-    <div class="relative flex min-h-screen flex-col overflow-hidden bg-slate-100 lg:flex-row">
-      <div
-        id="sidebar-overlay"
-        class="fixed inset-0 z-30 hidden bg-slate-900/40 backdrop-blur-sm lg:hidden"
-        aria-hidden="true"
-      ></div>
+  <body class="h-full text-slate-700 bg-slate-50">
+    <div class="relative flex min-h-screen bg-white flex-col lg:flex-row">
+      <!-- Mobile Header -->
+      <header class="mobile-header w-full lg:hidden bg-white">
+        <div class="flex items-center gap-3">
+          <img src="img/slink.png" alt="Slink Logo" class="h-8 w-auto flex-shrink-0" />
+          <span class="text-xl font-bold text-slate-900 tracking-tight">Slink.</span>
+        </div>
+        <button id="mobile-nav-open" class="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
+        </button>
+      </header>
+
+      <!-- Sidebar Overlay -->
+      <div id="sidebar-overlay" class="fixed inset-0 z-40 lg:hidden hidden"></div>
+
+      <!-- Sidebar -->
       <aside
         id="sidebar"
-        class="fixed inset-y-0 left-0 z-40 hidden w-72 -translate-x-full transform bg-white shadow-xl transition-transform duration-300 ease-out lg:relative lg:flex lg:w-72 lg:translate-x-0 lg:flex-col lg:border-r lg:border-slate-200 lg:bg-white lg:shadow-sm lg:transition-none"
-        aria-label="Primary"
+        class="fixed inset-y-0 left-0 z-50 w-72 athena-sidebar transform -translate-x-full transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:flex lg:flex-col lg:min-h-screen"
       >
-        <div class="relative px-6 pt-8 pb-6 border-b border-slate-200">
-          <button
-            id="mobile-nav-close"
-            class="absolute right-4 top-5 inline-flex items-center justify-center rounded-full border border-slate-200 bg-white p-2 text-slate-500 shadow-sm transition hover:border-slate-300 hover:text-slate-900 lg:hidden"
-            aria-label="Close navigation"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18 18 6m0 12L6 6" />
-            </svg>
-          </button>
+        <div class="p-6 flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <img
-              src="./img/slink.png"
-              alt="Slink logo"
-              class="h-12 w-12 rounded-2xl object-cover shadow-sm"
-            />
-            <div>
-              <p class="text-sm font-medium uppercase tracking-widest text-slate-500">
-                Admin
-              </p>
-              <h1 class="text-xl font-semibold text-slate-900">Slink Control</h1>
-            </div>
+            <img src="img/slink.png" alt="Slink Logo" class="h-8 w-auto" />
+            <span class="text-xl font-bold text-slate-900 tracking-tight">Slink.</span>
+          </div>
+          <button id="mobile-nav-close" class="lg:hidden p-2 text-slate-400 hover:text-slate-600 transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="px-4 py-2">
+          <div class="relative">
+            <input type="text" id="search-input" placeholder="Search clients..." class="w-full bg-slate-100 border-none rounded-lg py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-indigo-500 transition-all" />
+            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
           </div>
         </div>
-        <nav class="flex-1 overflow-y-auto px-4 pt-6 pb-10 scrollbar-thin">
-          <div class="space-y-2">
-            <button class="nav-item" data-filter="registered">
-              <span>Registered</span>
-              <span class="badge" data-badge-count="registered">0</span>
-            </button>
-            <button class="nav-item" data-filter="new-skill">
-              <span>New-Skill</span>
-              <span class="badge" data-badge-count="newSkill">0</span>
-            </button>
-            <button class="nav-item" data-filter="connected-skill">
-              <span>Connected Skill</span>
-              <span class="badge" data-badge-count="connected">0</span>
-            </button>
-            <button class="nav-item" data-filter="pending-skill">
-              <span>Pending Skill</span>
-              <span class="badge" data-badge-count="pending">0</span>
-            </button>
-            <button class="nav-item" data-filter="suggested-skill">
-              <span>Suggested Skill</span>
-              <span class="badge" data-badge-count="suggested">0</span>
-            </button>
-            <button class="nav-item" data-filter="mailed">
-              <span>Assessment Mailed</span>
-              <span class="badge" data-badge-count="mailed">0</span>
-            </button>
-          </div>
+
+        <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto scrollbar-thin">
+          <p class="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Menu</p>
+          <button class="athena-nav-item w-full active" data-filter="registered">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            <span>Dashboard</span>
+            <span class="ml-auto bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-xs font-bold" data-badge-count="registered">0</span>
+          </button>
+          <button class="athena-nav-item w-full" data-filter="new-skill">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>New Skill</span>
+            <span class="ml-auto bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-xs font-bold" data-badge-count="newSkill">0</span>
+          </button>
+          <button class="athena-nav-item w-full" data-filter="pending-skill">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <span>Pending</span>
+            <span class="ml-auto bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-xs font-bold" data-badge-count="pending">0</span>
+          </button>
+          <button class="athena-nav-item w-full" data-filter="connected-skill">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <span>Connected</span>
+            <span class="ml-auto bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-xs font-bold" data-badge-count="connected">0</span>
+          </button>
+          <button class="athena-nav-item w-full" data-filter="mailed">
+             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+             <span>Mailed</span>
+             <span class="ml-auto bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-xs font-bold" data-badge-count="mailed">0</span>
+          </button>
         </nav>
-        <div class="px-6 py-5 border-t border-slate-200">
-          <div class="rounded-2xl bg-slate-900/90 p-5 text-white">
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-200">
-              Insights
-            </h2>
-            <p class="mt-3 text-sm text-slate-100">
-              Monitor skills lifecycle, approvals, and AI suggestions in a single view.
-            </p>
+
+        <div class="p-4 mt-auto">
+          <div class="bg-indigo-600 rounded-2xl p-5 text-white shadow-lg shadow-indigo-200">
+            <p class="text-[10px] font-bold uppercase tracking-wider opacity-80">Intelligence Insights</p>
+            <p class="text-sm mt-2 leading-relaxed">Real-time monitoring of your skill lifecycle.</p>
+          </div>
+          <div class="mt-6 flex items-center gap-3 px-2 border-t border-slate-200 pt-6">
+            <div class="w-10 h-10 rounded-full bg-slate-200 overflow-hidden ring-2 ring-white">
+                <img src="https://ui-avatars.com/api/?name=Admin+User&background=6366f1&color=fff" alt="User" />
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold text-slate-900 truncate">Admin User</p>
+                <p class="text-xs text-slate-500 truncate">admin@slink.com</p>
+            </div>
           </div>
         </div>
       </aside>
 
-      <main class="flex-1 overflow-y-auto scrollbar-thin">
-        <div class="min-h-full px-4 py-6 sm:px-6 lg:px-10 lg:py-10">
-          <header class="mb-8 flex flex-wrap items-center justify-between gap-4">
+      <!-- Main Content -->
+      <main class="flex-1 bg-white overflow-y-auto scrollbar-thin min-h-screen lg:min-h-0">
+        <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+          <header class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-6 mb-10">
             <div>
-              <p class="text-sm font-semibold uppercase tracking-widest text-slate-500">
-                Overview
-              </p>
-              <h2 class="text-3xl font-semibold text-slate-900">
-                Skills Intelligence Dashboard
-              </h2>
+              <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Invoices & Registrations</h1>
+              <p class="text-slate-500 mt-1.5 text-sm sm:text-base">Explore your full registration history and transaction data.</p>
             </div>
-            <div class="flex items-center gap-3">
-              <button
-                id="mobile-nav-open"
-                class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white p-2 text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900 lg:hidden"
-                aria-label="Open navigation"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
-              <div class="hidden items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm sm:flex">
-                <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-                <span class="text-sm text-slate-500">Realtime sync active</span>
-              </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <button id="reset-filters" class="flex-1 sm:flex-none px-5 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-all">Reset Filters</button>
+                <button class="flex-1 sm:flex-none px-5 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                    Create Registration
+                </button>
             </div>
           </header>
 
-          <section class="space-y-6">
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <div
-                class="summary-card"
-                data-summary-card="registered"
-                role="button"
-                tabindex="0"
-                aria-pressed="false"
-              >
-                <p class="summary-card-label">
-                  Total Registered
-                </p>
-                <p class="summary-card-value" data-summary-value data-metric="registered">0</p>
-              </div>
-              <div
-                class="summary-card"
-                data-summary-card="newSkill"
-                role="button"
-                tabindex="0"
-                aria-pressed="false"
-              >
-                <p class="summary-card-label">
-                  New Skill Updates
-                </p>
-                <p class="summary-card-value" data-summary-value data-metric="newSkill">0</p>
-              </div>
-              <div
-                class="summary-card"
-                data-summary-card="connected"
-                role="button"
-                tabindex="0"
-                aria-pressed="false"
-              >
-                <p class="summary-card-label">
-                  Connected Skills
-                </p>
-                <p class="summary-card-value" data-summary-value data-metric="connected">0</p>
-              </div>
-              <div
-                class="summary-card"
-                data-summary-card="pending"
-                role="button"
-                tabindex="0"
-                aria-pressed="false"
-              >
-                <p class="summary-card-label">
-                  Pending Reviews
-                </p>
-                <p class="summary-card-value" data-summary-value data-metric="pending">0</p>
-              </div>
-              <div
-                class="summary-card"
-                data-summary-card="mailed"
-                role="button"
-                tabindex="0"
-                aria-pressed="false"
-              >
-                <p class="summary-card-label">
-                  Assessment Mail Sent
-                </p>
-                <p class="summary-card-value" data-summary-value data-metric="mailed">0</p>
-              </div>
+          <!-- Summary Stats -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-10">
+            <div class="summary-card" data-summary-card="registered">
+                <div class="summary-card-icon bg-indigo-50 text-indigo-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                </div>
+                <span class="summary-card-label">Total Registrations</span>
+                <span class="summary-card-value" data-summary-value>0</span>
+            </div>
+            <div class="summary-card" data-summary-card="newSkill">
+                <div class="summary-card-icon bg-sky-50 text-sky-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <span class="summary-card-label">New Skills</span>
+                <span class="summary-card-value" data-summary-value>0</span>
+            </div>
+            <div class="summary-card" data-summary-card="connected">
+                <div class="summary-card-icon bg-emerald-50 text-emerald-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <span class="summary-card-label">Connected</span>
+                <span class="summary-card-value" data-summary-value>0</span>
+            </div>
+            <div class="summary-card" data-summary-card="pending">
+                <div class="summary-card-icon bg-amber-50 text-amber-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <span class="summary-card-label">Pending Review</span>
+                <span class="summary-card-value" data-summary-value>0</span>
+            </div>
+          </div>
+
+          <!-- Table Section -->
+          <div class="athena-card">
+            <div class="flex flex-col md:flex-row justify-between md:items-center gap-6 mb-8">
+                <div class="flex-1">
+                    <h3 class="text-xl font-bold text-slate-900 tracking-tight">Registration Lists</h3>
+                    <p class="text-sm text-slate-500 mt-0.5">Registration history for the past 30 days</p>
+                </div>
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                    <div class="relative flex-1 sm:w-80">
+                        <input type="text" id="header-search-input" placeholder="Search client or skill..." class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm" />
+                        <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </div>
+                    <div class="flex items-center justify-between sm:justify-start gap-3 bg-slate-50/50 px-3 py-2 rounded-xl border border-slate-100">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Sync Active</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div
-              class="rounded-3xl border border-slate-200 bg-white shadow-lg shadow-slate-900/5"
-              id="mailed-section"
-            >
-              <div class="flex flex-col gap-3 border-b border-slate-100 px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h3 class="text-xl font-semibold text-slate-900">Professional Test Mailouts</h3>
-                  <p class="text-sm text-slate-500">Track which candidates received the assessment email and their test status.</p>
-                </div>
-              </div>
-              <div id="mailed-list" class="divide-y divide-slate-100">
-                <!-- populated dynamically -->
-              </div>
-              <p id="mailed-empty" class="px-6 py-6 text-sm text-slate-400">No candidates have been mailed yet.</p>
-            </div>
-
-            <div
-              id="registry-section"
-              class="rounded-3xl border border-slate-200 bg-white shadow-lg shadow-slate-900/5"
-            >
-              <div
-                class="flex flex-col gap-6 border-b border-slate-100 px-6 py-6 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div>
-                  <h3 class="text-xl font-semibold text-slate-900">
-                    Workforce Skills Registry
-                  </h3>
-                  <p class="text-sm text-slate-500">
-                    Filter by lifecycle state to verify, connect, or decline skill submissions.
-                  </p>
-                </div>
-                <div class="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-                  <div class="relative w-full sm:w-auto">
-                    <input
-                      type="text"
-                      placeholder="Search people or skills"
-                      class="w-full rounded-full border border-slate-200 bg-slate-50/60 py-2 pl-10 pr-4 text-sm text-slate-600 outline-none transition focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-200 md:w-64"
-                      id="search-input"
-                    />
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      class="pointer-events-none absolute left-3 top-2.5 h-5 w-5 text-slate-400"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="1.5"
-                        d="M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"
-                      />
-                    </svg>
-                  </div>
-                  <button
-                    class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
-                    id="reset-filters"
-                  >
-                    Reset
-                  </button>
-                </div>
-              </div>
-
-              <div class="overflow-x-auto">
-                <table class="slink-table min-w-full divide-y divide-slate-200" id="people-table">
-                  <thead class="bg-slate-50">
-                    <tr>
-                      <th
-                        class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
-                      >
-                        Name
-                      </th>
-                      <th
-                        class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
-                      >
-                        Current Skills
-                      </th>
-                      <th
-                        class="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500"
-                      >
-                        Status
-                      </th>
-                      <th
-                        class="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500"
-                      >
-                        Readiness
-                      </th>
-                      <th
-                        class="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500"
-                      >
-                        Email Sent
-                      </th>
-                      <th
-                        class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500"
-                      >
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-slate-100" id="table-body"></tbody>
+            <div class="overflow-x-auto lg:-mx-6 lg:px-6">
+                <table class="w-full athena-table" id="people-table">
+                    <thead>
+                        <tr>
+                            <th class="text-left w-12"><input type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500" /></th>
+                            <th class="text-left">Registrant</th>
+                            <th class="text-left">Skills Matrix</th>
+                            <th class="text-left">Status</th>
+                            <th class="text-left">Readiness</th>
+                            <th class="text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <!-- populated dynamically -->
+                    </tbody>
                 </table>
-              </div>
             </div>
-          </section>
+          </div>
+
+          <!-- Mailed Section (Hidden unless filtered) -->
+          <div id="mailed-section" class="athena-card mt-10 hidden">
+            <div class="mb-8">
+                <h3 class="text-xl font-bold text-slate-900 tracking-tight">Assessment Mail Queue</h3>
+                <p class="text-sm text-slate-500 mt-0.5">Candidates currently in the automated assessment pipeline.</p>
+            </div>
+            <div id="mailed-list" class="divide-y divide-slate-100">
+                <!-- populated dynamically -->
+            </div>
+            <div id="mailed-empty" class="py-20 text-center flex flex-col items-center gap-4">
+                <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300">
+                  <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>
+                <p class="text-slate-400 font-medium">No candidates mailed yet.</p>
+            </div>
+          </div>
         </div>
       </main>
     </div>
@@ -678,90 +590,10 @@
     </div>
 
     <div
-      id="person-detail"
-      class="fixed inset-0 z-50 hidden"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div
-        id="detail-overlay"
-        class="absolute inset-0 bg-slate-900/40 opacity-0 transition-opacity duration-300"
-        data-close-detail
-      ></div>
-      <aside
-        id="detail-panel"
-        class="absolute inset-y-0 right-0 flex h-full w-full max-w-xl translate-x-full transform flex-col bg-white shadow-2xl transition-transform duration-300"
-      >
-        <header class="flex items-start justify-between border-b border-slate-200 px-6 py-6">
-          <div>
-            <span
-              id="detail-status"
-              class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide"
-            ></span>
-            <h2 id="detail-name" class="mt-3 text-2xl font-semibold text-slate-900"></h2>
-            <div class="mt-3 flex flex-wrap gap-3 text-sm text-slate-500">
-              <span id="detail-email" class="flex items-center gap-2"></span>
-              <span id="detail-location" class="flex items-center gap-2"></span>
-              <span id="detail-connected" class="flex items-center gap-2"></span>
-              <span id="detail-created" class="flex items-center gap-2"></span>
-            </div>
-          </div>
-          <button
-            id="detail-close"
-            class="rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
-            aria-label="Close detail panel"
-            data-close-detail
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18 18 6m0 12L6 6" />
-            </svg>
-          </button>
-        </header>
-        <div class="flex-1 space-y-8 overflow-y-auto px-6 py-6">
-          <section>
-            <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Profile</h3>
-            <dl class="mt-4 space-y-3 text-sm text-slate-600">
-              <div class="flex items-start gap-3">
-                <dt class="w-32 text-slate-400">Email</dt>
-                <dd id="detail-email-value" class="flex-1 break-words"></dd>
-              </div>
-              <div class="flex items-start gap-3">
-                <dt class="w-32 text-slate-400">Location</dt>
-                <dd id="detail-location-value" class="flex-1 break-words"></dd>
-              </div>
-              <div class="flex items-start gap-3">
-                <dt class="w-32 text-slate-400">Source</dt>
-                <dd id="detail-source" class="flex-1 break-words"></dd>
-              </div>
-              <div class="flex items-start gap-3">
-                <dt class="w-32 text-slate-400">Consent</dt>
-                <dd id="detail-consent" class="flex-1 break-words"></dd>
-              </div>
-            </dl>
-          </section>
-          <section>
-            <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Skills to Learn</h3>
-            <div id="detail-learn-skill" class="mt-4 flex flex-wrap gap-3"></div>
-          </section>
-          <section>
-            <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Skills to Teach</h3>
-            <div id="detail-teach-skills" class="mt-4 flex flex-wrap gap-3"></div>
-          </section>
-          <section>
-            <div class="flex items-center justify-between">
-              <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Suggested Tutors</h3>
-              <span id="detail-match-count" class="text-xs font-medium text-slate-400"></span>
-            </div>
-            <div id="detail-tutor-suggestions" class="mt-4 space-y-3"></div>
-          </section>
-        </div>
-      </aside>
-    </div>
-
-    <div
       id="notification-root"
       class="pointer-events-none fixed inset-x-0 top-4 z-[70] flex justify-center px-4"
     ></div>
+
 
     <div
       id="remove-confirm"
@@ -933,7 +765,10 @@
         lastNotifiedTutorId: null,
         submissions: new Map(),
         emailedPersonIds: new Set(),
-        mailedPeople: []
+        mailedPeople: [],
+        peopleRetryHandle: null,
+        submissionsRetryHandle: null,
+        adminUnlocked: true
       };
 
       const navButtons = document.querySelectorAll(".nav-item");
@@ -958,6 +793,22 @@
       const mailedSection = document.getElementById("mailed-section");
       const mailedList = document.getElementById("mailed-list");
       const mailedEmpty = document.getElementById("mailed-empty");
+
+      function isAdminUnlocked() {
+        return true;
+      }
+
+      function unlockAdminControls() {
+        state.adminUnlocked = true;
+        document.querySelectorAll('[data-admin-lockable="true"]').forEach((element) => {
+          element.removeAttribute("disabled");
+          element.classList.remove("opacity-50", "cursor-not-allowed");
+        });
+      }
+
+      function syncAdminControls() {
+        unlockAdminControls();
+      }
 
       function renderMailedList() {
         if (!mailedSection || !mailedList || !mailedEmpty) return;
@@ -1087,49 +938,51 @@
 
       function openSidebar() {
         if (!sidebar) return;
-
-        if (window.innerWidth >= 1024) {
-          sidebar.classList.remove("hidden", "-translate-x-full");
-          if (sidebarOverlay) sidebarOverlay.classList.add("hidden");
-          return;
+        
+        sidebar.classList.remove("-translate-x-full");
+        if (sidebarOverlay) {
+          sidebarOverlay.classList.remove("hidden");
+          sidebarOverlay.classList.add("opacity-100");
         }
-
-        sidebar.classList.remove("hidden");
-        if (sidebarOverlay) sidebarOverlay.classList.remove("hidden");
-
-        requestAnimationFrame(() => {
-          sidebar.classList.remove("-translate-x-full");
-        });
+        body.style.overflow = "hidden";
       }
 
       function closeSidebar({ immediate = false } = {}) {
         if (!sidebar) return;
 
-        if (window.innerWidth >= 1024) {
-          sidebar.classList.remove("hidden", "-translate-x-full");
-          if (sidebarOverlay) sidebarOverlay.classList.add("hidden");
-          return;
-        }
-
         sidebar.classList.add("-translate-x-full");
-        if (sidebarOverlay) sidebarOverlay.classList.add("hidden");
-
-        const hide = () => sidebar.classList.add("hidden");
-        if (immediate) {
-          hide();
-        } else {
-          setTimeout(hide, 250);
+        if (sidebarOverlay) {
+          sidebarOverlay.classList.remove("opacity-100");
+          if (immediate) {
+            sidebarOverlay.classList.add("hidden");
+          } else {
+            setTimeout(() => {
+              if (sidebar.classList.contains("-translate-x-full")) {
+                sidebarOverlay.classList.add("hidden");
+              }
+            }, 300);
+          }
         }
+        body.style.overflow = "";
       }
 
       function syncSidebarToViewport() {
         if (!sidebar) return;
 
         if (window.innerWidth >= 1024) {
-          sidebar.classList.remove("hidden", "-translate-x-full");
-          if (sidebarOverlay) sidebarOverlay.classList.add("hidden");
+          sidebar.classList.remove("-translate-x-full");
+          sidebar.classList.remove("hidden");
+          if (sidebarOverlay) {
+            sidebarOverlay.classList.add("hidden");
+            sidebarOverlay.classList.remove("opacity-100");
+          }
+          body.style.overflow = "";
         } else {
-          closeSidebar({ immediate: true });
+          sidebar.classList.add("-translate-x-full");
+          if (sidebarOverlay) {
+            sidebarOverlay.classList.add("hidden");
+            sidebarOverlay.classList.remove("opacity-100");
+          }
         }
       }
 
@@ -1794,8 +1647,8 @@
 
         if (!filtered.length) {
           tableBody.innerHTML = `
-            <tr class="slink-table-empty">
-              <td data-label="No Records" colspan="6" class="px-6 py-16 text-center text-sm text-slate-400">
+            <tr>
+              <td colspan="6" class="px-6 py-16 text-center text-sm text-slate-400">
                 No records match the current filters. Adjust the criteria to continue monitoring skills.
               </td>
             </tr>
@@ -1810,174 +1663,95 @@
                 ? state.people.find((candidate) => candidate.id === person.connectedTutorId) || null
                 : null;
             const connectedTutorName = connectedTutor?.name || person.connectedTutorName || "";
-            const connectedTutorLocation =
-              connectedTutor?.location || person.connectedTutorLocation || "";
 
-            const statusIcon =
-              person.status === "connected"
-                ? "<span class=\"h-2 w-2 rounded-full bg-emerald-500\"></span>"
-                : "<span class=\"h-2 w-2 rounded-full bg-amber-500\"></span>";
-
-            const resume =
-              person.resume ?? {
-                url: "",
-                submitted: Boolean(person.readyForLinking),
-                ready: Boolean(person.readyForLinking),
-                status: "",
-                updatedAtLabel: ""
-              };
-
-            const readinessBadge = !showRowDetails
-              ? ""
-              : resume.ready
-              ? `<span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 12.75l6 6 9-13.5" /></svg>Ready to link</span>`
+            const statusClass = person.status === "connected" ? "status-completed" : "status-pending";
+            
+            const resume = person.resume ?? { submitted: false, ready: false };
+            const readinessBadge = resume.ready
+              ? `<span class="athena-status-pill status-completed">Ready</span>`
               : resume.submitted
-              ? `<span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 6.75h13.5a2.25 2.25 0 012.25 2.25v8.25a2.25 2.25 0 01-2.25 2.25H6a3 3 0 01-3-3V6.75Z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3.75v3" /></svg>Resume submitted</span>`
-              : `<span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18 18 6m0 12L6 6" /></svg>No resume</span>`;
-            const skillTestBadge = showRowDetails ? getSkillTestBadge(person.skillTest) : "";
+              ? `<span class="athena-status-pill status-pending">Review</span>`
+              : `<span class="athena-status-pill bg-slate-100 text-slate-500">None</span>`;
+
             const isEmailSent = Boolean(person.flags.mailed);
-            const skillTestScoreValue = showRowDetails
-              ? Number.isFinite(person.skillTest?.score)
+            const scoreValue = Number.isFinite(person.skillTest?.score)
                 ? formatSkillTestScore(person.skillTest.score)
                 : Number.isFinite(person.skillTest?.rating)
                 ? formatSkillTestScore(person.skillTest.rating)
-                : ""
-              : "";
+                : null;
 
-            const readinessMeta = !showRowDetails
-              ? ""
-              : resume.ready
-              ? `<span class="flex items-center gap-1 text-xs font-semibold text-emerald-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 12.75l6 6 9-13.5" /></svg>Ready to link</span>`
-              : resume.submitted
-              ? `<span class="flex items-center gap-1 text-xs font-semibold text-amber-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 6.75h13.5a2.25 2.25 0 012.25 2.25v8.25a2.25 2.25 0 01-2.25 2.25H6a3 3 0 01-3-3V6.75Z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3.75v3" /></svg>Resume submitted</span>`
-              : "";
-            const skillTestMeta = showRowDetails ? getSkillTestBadge(person.skillTest, { variant: "meta" }) : "";
-            const skillTestScoreMeta = showRowDetails && skillTestScoreValue
-              ? `<span class="flex items-center gap-1 text-[11px] font-semibold text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.25 6.75h7.5m-7.5 3.75h3.75m-3.75 3.75h7.5M4.5 6.75h.008v.008H4.5V6.75Zm0 7.5h.008v.008H4.5v-.008Zm15-.75h.008v.008H19.5v-.008Zm0 7.5h.008v.008H19.5v-.008Z" /></svg>Score ${skillTestScoreValue}</span>`
-              : "";
+            const teachSkillsMarkup = person.teachSkills
+              .slice(0, 2)
+              .map(skill => `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">${skill}</span>`)
+              .join(" ");
 
-            const skillsMarkup = showRowDetails
-              ? person.skills
-                  .map(
-                    (skill) =>
-                      `<span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">${skill}</span>`
-                  )
-                  .join("\n")
-              : '<span class="text-xs font-medium text-slate-400">Select a registrant to view skills</span>';
+            const learnSkillsMarkup = person.learnSkills
+              .slice(0, 2)
+              .map(skill => `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100">${skill}</span>`)
+              .join(" ");
 
-            const mobileMeta = showRowDetails
-              ? [
-                  person.location
-                    ? `<span class="slink-table-chip"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>${person.location}</span>`
-                    : "",
-                  person.createdAtLabel
-                    ? `<span class="slink-table-chip"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l2.5 2.5 2.5-2.5" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 3.75h10.5a2.25 2.25 0 012.25 2.25v11.25a2.25 2.25 0 01-2.25 2.25H6.75a2.25 2.25 0 01-2.25-2.25V6a2.25 2.25 0 012.25-2.25z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 9h10.5" /></svg>Added ${person.createdAtLabel}</span>`
-                    : "",
-                  person.status === "connected" && (connectedTutorName || person.connectedTutorId)
-                    ? `<span class="slink-table-chip"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.5 6h2.25A2.25 2.25 0 0118 8.25v2.25M10.5 18H8.25A2.25 2.25 0 016 15.75V13.5M17.25 6.75 6.75 17.25" /></svg>Connected${connectedTutorName ? ` to ${connectedTutorName}` : ""}${connectedTutorLocation ? ` · ${connectedTutorLocation}` : ""}</span>`
-                    : "",
-                  resume.ready
-                    ? `<span class="slink-table-chip bg-emerald-100 text-emerald-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 12.75l6 6 9-13.5" /></svg>Ready to link</span>`
-                    : resume.submitted
-                    ? `<span class="slink-table-chip bg-amber-100 text-amber-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 6.75h13.5a2.25 2.25 0 012.25 2.25v8.25a2.25 2.25 0 01-2.25 2.25H6a3 3 0 01-3-3V6.75Z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3.75v3" /></svg>Resume submitted</span>`
-                    : "",
-                  skillTestScoreValue
-                    ? `<span class="slink-table-chip bg-slate-100 text-slate-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.25 6.75h7.5m-7.5 3.75h3.75m-3.75 3.75h7.5M4.5 6.75h.008v.008H4.5V6.75Zm0 7.5h.008v.008H4.5v-.008Zm15-.75h.008v.008H19.5v-.008Zm0 7.5h.008v.008H19.5v-.008Z" /></svg>Score ${skillTestScoreValue}</span>`
-                    : "",
-                  getSkillTestBadge(person.skillTest, { variant: "mobile" })
-                ]
-                  .filter(Boolean)
-                  .join("")
-              : "";
+            const moreTeach = person.teachSkills.length > 2 ? `<span class="text-[10px] text-slate-400">+${person.teachSkills.length - 2}</span>` : "";
+            const moreLearn = person.learnSkills.length > 2 ? `<span class="text-[10px] text-slate-400">+${person.learnSkills.length - 2}</span>` : "";
 
             return `
-              <tr class="group cursor-pointer transition hover:bg-slate-50/70" data-person-id="${person.id}">
-                <td data-label="Name" class="px-6 py-4 align-top text-sm text-slate-600">
+              <tr class="hover:bg-slate-50 transition-colors cursor-pointer group" data-person-id="${person.id}">
+                <td class="athena-table td"><input type="checkbox" class="rounded text-indigo-600" /></td>
+                <td class="athena-table td" data-label="Registrant">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500">
+                      ${person.name.charAt(0)}
+                    </div>
+                    <div>
+                      <div class="text-sm font-semibold text-slate-900">${person.name}</div>
+                      <div class="text-xs text-slate-500">${person.email || "No email"}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="athena-table td" data-label="Skills">
+                  <div class="flex flex-col gap-2">
+                    <div class="flex flex-col gap-1">
+                      <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Teach</span>
+                      <div class="flex flex-wrap gap-1 items-center">
+                        ${teachSkillsMarkup || '<span class="text-[10px] text-slate-300">None</span>'}${moreTeach}
+                      </div>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Learn</span>
+                      <div class="flex flex-wrap gap-1 items-center">
+                        ${learnSkillsMarkup || '<span class="text-[10px] text-slate-300">None</span>'}${moreLearn}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td class="athena-table td" data-label="Status">
+                  <div class="flex items-center gap-2">
+                    <input type="checkbox" class="status-toggle-checkbox h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500" 
+                      data-status-checkbox="${person.id}" ${person.status === "connected" ? "checked" : ""} />
+                    <span class="athena-status-pill ${statusClass} capitalize">${person.status}</span>
+                  </div>
+                </td>
+                <td class="athena-table td" data-label="Readiness">
                   <div class="flex flex-col gap-1">
-                    <span class="font-medium text-slate-900">${person.name}</span>
-                    ${[
-                      person.email
-                        ? `<span class="text-xs text-slate-400">${person.email}</span>`
-                        : "",
-                      person.location
-                        ? `<span class="text-xs text-slate-400">${person.location}</span>`
-                        : "",
-                      person.status === "connected"
-                        ? `<span class="text-xs font-medium text-emerald-600">Connected${connectedTutorName ? ` to ${connectedTutorName}` : ""}${connectedTutorLocation ? ` · ${connectedTutorLocation}` : ""}</span>`
-                        : "",
-                      readinessMeta,
-                      skillTestMeta,
-                      skillTestScoreMeta,
-                      person.createdAtLabel
-                        ? `<span class="text-xs text-slate-400">Registered ${person.createdAtLabel}</span>`
-                        : ""
-                    ]
-                      .filter(Boolean)
-                      .join("")}
-                  </div>
-                  ${
-                    mobileMeta
-                      ? `<div class="mt-3 flex flex-wrap gap-2 sm:hidden">${mobileMeta}</div>`
-                      : ""
-                  }
-                </td>
-                <td data-label="Current Skills" class="px-6 py-4 align-top text-sm text-slate-600">
-                  <div class="flex flex-wrap gap-2">
-                    ${
-                      skillsMarkup ||
-                      '<span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-400">No skills captured</span>'
-                    }
+                    ${readinessBadge}
+                    ${scoreValue ? `<span class="text-[10px] font-bold text-slate-400 uppercase">Score: ${scoreValue}</span>` : ""}
                   </div>
                 </td>
-                <td data-label="Status" class="px-6 py-4 align-top text-left text-sm text-slate-600 sm:text-center">
-                  ${
-                    showRowDetails
-                      ? `<span class="${getStatusPillClasses(person.status)}">${statusIcon}<span class="capitalize">${person.status}</span></span>`
-                      : '<span class="text-xs font-medium text-slate-400">Select to view status</span>'
-                  }
-                </td>
-                <td data-label="Readiness" class="px-6 py-4 align-top text-left text-sm text-slate-600 sm:text-center">
-                  ${
-                    showRowDetails
-                      ? `<div class="flex flex-col items-start gap-2 sm:items-center">
-                          ${readinessBadge}
-                          ${skillTestBadge}
-                          ${
-                            skillTestScoreValue
-                              ? `<span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Score ${skillTestScoreValue}</span>`
-                              : ""
-                          }
-                        </div>`
-                      : '<span class="text-xs font-medium text-slate-400">Open profile for readiness</span>'
-                  }
-                </td>
-                <td data-label="Email Sent" class="px-6 py-4 align-top text-left text-sm text-slate-600 sm:text-center">
-                  <label class="inline-flex items-center gap-2 text-xs text-slate-500">
-                    <input
-                      type="checkbox"
-                      class="email-sent-checkbox h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                      data-email-checkbox="${person.id}"
-                      ${isEmailSent ? "checked" : ""}
-                    />
-                    <span class="font-medium">Mailed</span>
-                  </label>
-                </td>
-                <td data-label="Actions" class="px-6 py-4 align-top text-left text-sm text-slate-600 sm:text-right">
-                  <button
-                    class="inline-flex w-full items-center justify-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-xs font-medium text-red-600 transition hover:border-red-300 hover:bg-red-100 sm:w-auto"
-                    data-action="remove"
-                    data-id="${person.id}"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18 18 6m0 12L6 6" />
-                    </svg>
-                    Remove
-                  </button>
+                <td class="athena-table td text-right" data-label="Actions">
+                  <div class="flex items-center justify-end gap-3">
+                    <label class="flex items-center gap-1 cursor-pointer">
+                      <input type="checkbox" class="email-sent-checkbox h-4 w-4 rounded text-indigo-600" 
+                        data-email-checkbox="${person.id}" ${isEmailSent ? "checked" : ""} />
+                      <span class="text-xs text-slate-500">Mail</span>
+                    </label>
+                    <button class="p-1 text-slate-400 hover:text-red-600 transition" data-action="remove" data-id="${person.id}">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                  </div>
                 </td>
               </tr>
             `;
           })
-          .join("\n");
+          .join("");
       }
 
       function renderSelectedTutor(tutor) {
@@ -2035,12 +1809,9 @@
 
       function setActiveFilter(filter) {
         state.activeFilter = filter;
-        navButtons.forEach((button) => {
+        document.querySelectorAll(".athena-nav-item").forEach((button) => {
           const isActive = button.dataset.filter === filter;
-          button.classList.remove(...NAV_ACTIVE_CLASSES, ...NAV_INACTIVE_CLASSES);
-          button.classList.add(
-            ...(isActive ? NAV_ACTIVE_CLASSES : NAV_INACTIVE_CLASSES)
-          );
+          button.classList.toggle("active", isActive);
         });
 
         summaryCards.forEach((card) => {
@@ -2124,7 +1895,7 @@
         renderMailedList();
       }
 
-      navButtons.forEach((button) => {
+      document.querySelectorAll(".athena-nav-item").forEach((button) => {
         button.addEventListener("click", () => {
           const filter = button.dataset.filter;
           if (filter) {
@@ -2155,7 +1926,10 @@
       });
 
       if (mobileNavOpen) {
-        mobileNavOpen.addEventListener("click", () => openSidebar());
+        mobileNavOpen.addEventListener("click", (e) => {
+          e.stopPropagation();
+          openSidebar();
+        });
       }
 
       if (mobileNavClose) {
@@ -2185,12 +1959,36 @@
         resetButton.addEventListener("click", resetFilters);
       }
 
+
       tableBody.addEventListener("change", (event) => {
-        const checkbox = event.target.closest("input[data-email-checkbox]");
-        if (!checkbox) return;
-        const personId = checkbox.dataset.emailCheckbox;
-        if (!personId) return;
-        updateMailedStatus(personId, checkbox.checked);
+        const statusCheckbox = event.target.closest("input[data-status-checkbox]");
+        if (statusCheckbox) {
+          const personId = statusCheckbox.dataset.statusCheckbox;
+          const isConnected = statusCheckbox.checked;
+          const person = state.people.find(p => p.id === personId);
+          
+          if (isConnected) {
+            // If they have a selected tutor in state, use it, otherwise just mark as connected
+            const tutor = state.selectedTutor || null;
+            connectPerson(person, tutor).catch(err => {
+              console.error("Manual connection toggle failed", err);
+              statusCheckbox.checked = false;
+            });
+          } else {
+            revertToPending(personId).catch(err => {
+              console.error("Manual revert toggle failed", err);
+              statusCheckbox.checked = true;
+            });
+          }
+          return;
+        }
+
+        const emailCheckbox = event.target.closest("input[data-email-checkbox]");
+        if (emailCheckbox) {
+          const personId = emailCheckbox.dataset.emailCheckbox;
+          updateMailedStatus(personId, emailCheckbox.checked);
+          return;
+        }
       });
 
       tableBody.addEventListener("click", (event) => {
@@ -2307,6 +2105,7 @@
         subscribeToPeople();
         subscribeToSubmissions();
         setActiveFilter(state.activeFilter);
+        syncAdminControls();
       }
 
       window.addEventListener("beforeunload", () => {
@@ -2314,20 +2113,51 @@
         if (state.unsubscribeSubmissions) state.unsubscribeSubmissions();
       });
 
-      async function connectPerson(person, tutor) {
-        if (!person?.id || !tutor?.id) return;
-        const personRef = doc(registrationsRef, person.id);
+      async function connectPerson(learner, tutor) {
+        if (!learner?.id || !tutor?.id) return;
 
-        await updateDoc(personRef, {
-          status: "connected",
-          connectedTutorId: tutor.id,
-          connectedTutorName: tutor.name || "",
-          connectedTutorEmail: tutor.email || "",
-          connectedTutorPhone: tutor.phone || "",
-          connectedTutorLocation: tutor.location || "",
-          connectedAt: new Date(),
-          previousStatus: "pending"
-        });
+        const mailSubject = encodeURIComponent("We found a match for you! – Slink");
+        const mailBody = encodeURIComponent(
+          [
+            `Dear ${learner.name || "there"},`,
+            "",
+            "Great news! We have found a perfect match for your skill acquisition journey on Slink.",
+            "",
+            "Your Assigned Tutor Details:",
+            `Name: ${tutor.name}`,
+            `Email: ${tutor.email || "Not provided"}`,
+            `Phone: ${tutor.phone || "Not provided"}`,
+            "",
+            "Please contact your tutor directly to begin your skill acquisition sessions. They are expecting your message!",
+            "",
+            "If you have any challenges or need further assistance, please feel free to get back to us by replying to this email.",
+            "",
+            "Best regards,",
+            "The Slink Team",
+            "https://slinkquest.vercel.app"
+          ].join("\n")
+        );
+
+        const mailtoHref = `mailto:${encodeURIComponent(learner.email)}?subject=${mailSubject}&body=${mailBody}`;
+        window.location.href = mailtoHref;
+
+        try {
+          await updateDoc(doc(registrationsRef, learner.id), {
+            status: "connected",
+            connectedTutorId: tutor.id,
+            connectedTutorName: tutor.name,
+            connectedTutorEmail: tutor.email || "",
+            connectedTutorPhone: tutor.phone || "",
+            connectedTutorLocation: tutor.location || "",
+            connectedAt: serverTimestamp()
+          });
+
+          showToast(`Connected ${learner.name} to ${tutor.name}`, { tone: "success" });
+        } catch (error) {
+          console.error("Failed to update connection in database", error);
+          showToast("Database update failed, but mail was opened.", { tone: "warning" });
+          throw error;
+        }
       }
 
       async function revertToPending(personId) {
@@ -2342,7 +2172,6 @@
           connectedTutorPhone: null,
           connectedTutorLocation: null,
           connectedAt: null,
-          previousStatus: "connected",
           revertedAt: new Date()
         });
       }
