@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-slate-100">
+<html lang="en" class="h-full">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,60 +7,150 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Manrope:wght@500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      body {
-        font-family: "Inter", sans-serif;
-        -webkit-font-smoothing: antialiased;
+      :root {
+        --bg-canvas: #0f141b;
+        --bg-panel: #131a23;
+        --surface: #181f2a;
+        --surface-muted: #1d2633;
+        --line: #2a3544;
+        --line-strong: #38495d;
+        --text: #e2e9f2;
+        --text-muted: #9aa9bc;
+        --accent: #7a95b5;
+        --accent-strong: #6683a7;
+        --accent-soft: #223142;
+        --success-bg: #24372d;
+        --success-text: #9ac2ac;
+        --warning-bg: #3a3327;
+        --warning-text: #d1bf97;
+        --danger-bg: #412a2d;
+        --danger-text: #d7a7af;
+        --shadow-soft: 0 14px 30px -22px rgba(0, 0, 0, 0.72);
+        --shadow-surface: 0 22px 44px -24px rgba(0, 0, 0, 0.8);
       }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
+        font-family: "Manrope", "IBM Plex Sans", sans-serif;
+        letter-spacing: -0.015em;
+      }
+
+      body {
+        font-family: "IBM Plex Sans", sans-serif;
+        -webkit-font-smoothing: antialiased;
+        color: var(--text);
+        background: linear-gradient(180deg, #0f141b 0%, #111824 100%);
+      }
+
+      .dashboard-shell {
+        background: transparent;
+      }
+
+      .dashboard-main {
+        background: linear-gradient(180deg, #121924 0%, #101722 100%);
+      }
+
       .scrollbar-thin::-webkit-scrollbar {
-        width: 6px;
+        width: 8px;
       }
       .scrollbar-thin::-webkit-scrollbar-thumb {
-        background-color: rgba(148, 163, 184, 0.5);
+        background-color: rgba(113, 138, 169, 0.42);
         border-radius: 9999px;
       }
 
-      /* Athena-inspired styles */
       .athena-sidebar {
-        background-color: #f8fafc;
-        border-right: 1px solid #e2e8f0;
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: linear-gradient(180deg, #141b26 0%, #111822 100%);
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
+        color: #c3cedc;
+        box-shadow: 12px 0 42px -26px rgba(0, 0, 0, 0.65);
+        transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      #sidebar .text-slate-900 {
+        color: #f4f8ff !important;
+      }
+      #sidebar .text-slate-500 {
+        color: #9baac0 !important;
+      }
+      #sidebar .text-slate-400 {
+        color: #8798af !important;
+      }
+      #sidebar .bg-slate-100,
+      #sidebar .bg-slate-200 {
+        background: rgba(255, 255, 255, 0.12) !important;
+        color: #e5eefb !important;
+      }
+      #sidebar .border-slate-200 {
+        border-color: rgba(255, 255, 255, 0.09) !important;
+      }
+      #sidebar #search-input {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        color: #f5f9ff;
+      }
+      #sidebar #search-input::placeholder {
+        color: #aab9ce;
+      }
+      #sidebar #search-input:focus {
+        box-shadow: 0 0 0 3px rgba(112, 137, 168, 0.25);
+        border-color: rgba(146, 170, 197, 0.68);
+      }
+      #sidebar .mt-auto > div:first-child {
+        background: #273240 !important;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 12px 24px -18px rgba(0, 0, 0, 0.6) !important;
       }
       .athena-nav-item {
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        padding: 0.625rem 1rem;
-        border-radius: 0.75rem;
+        padding: 0.7rem 1rem;
+        border-radius: 0.9rem;
         font-size: 0.875rem;
-        font-weight: 500;
-        color: #64748b;
-        transition: all 0.2s ease;
+        font-weight: 600;
+        color: #bcc8d7;
+        border: 1px solid transparent;
+        transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
       }
       .athena-nav-item:hover {
-        background-color: #f1f5f9;
-        color: #0f172a;
+        background-color: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.12);
+        color: #eaf0f8;
       }
       .athena-nav-item.active {
-        background-color: #fff;
-        color: #0f172a;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        border: 1px solid #e2e8f0;
+        background: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 10px 22px -20px rgba(0, 0, 0, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+      }
+      .athena-nav-item [data-badge-count] {
+        background: rgba(255, 255, 255, 0.18) !important;
+        color: #ecf4ff !important;
+        font-weight: 700;
       }
       .athena-card {
-        background: white;
-        border-radius: 1rem;
-        border: 1px solid #f1f5f9;
+        background: var(--surface);
+        border-radius: 1.15rem;
+        border: 1px solid var(--line);
         padding: 1.5rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        box-shadow: var(--shadow-soft);
+        animation: fade-up 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
       }
       .athena-gradient-card {
-        background: linear-gradient(135deg, #fff5f7 0%, #f0f4ff 100%);
-        border-radius: 1rem;
+        background: linear-gradient(145deg, #132134 0%, #101b2a 100%);
+        border-radius: 1.1rem;
         padding: 1.5rem;
         display: flex;
         flex-direction: column;
@@ -74,20 +164,21 @@
         }
       }
       .athena-table th {
-        background-color: #f8fafc;
-        color: #64748b;
+        background: #1c2736;
+        color: #9baabc;
         font-weight: 600;
         text-transform: uppercase;
         font-size: 0.75rem;
         letter-spacing: 0.05em;
         padding: 0.75rem 1.5rem;
+        border-bottom: 1px solid var(--line);
       }
       .athena-table td {
         padding: 1rem 1.5rem;
-        border-bottom: 1px solid #f1f5f9;
+        border-bottom: 1px solid #263446;
       }
       .athena-status-pill {
-        padding: 0.25rem 0.75rem;
+        padding: 0.3rem 0.8rem;
         border-radius: 9999px;
         font-size: 0.75rem;
         font-weight: 600;
@@ -95,33 +186,43 @@
         align-items: center;
         justify-content: center;
       }
-      .status-completed { background-color: #dcfce7; color: #166534; }
-      .status-pending { background-color: #fef9c3; color: #854d0e; }
-      .status-overdue { background-color: #fee2e2; color: #991b1b; }
+      .status-completed {
+        background-color: var(--success-bg);
+        color: var(--success-text);
+      }
+      .status-pending {
+        background-color: var(--warning-bg);
+        color: var(--warning-text);
+      }
+      .status-overdue {
+        background-color: var(--danger-bg);
+        color: var(--danger-text);
+      }
 
-      /* Mature Table Responsiveness */
       @media (max-width: 1023px) {
         .athena-table thead {
           display: none;
         }
-        .athena-table, .athena-table tbody, .athena-table tr {
+        .athena-table,
+        .athena-table tbody,
+        .athena-table tr {
           display: block;
           width: 100%;
         }
         .athena-table tr {
           margin-bottom: 1rem;
-          border: 1px solid #f1f5f9;
+          border: 1px solid var(--line);
           border-radius: 1rem;
           padding: 1rem;
-          background: white;
-          box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+          background: var(--surface);
+          box-shadow: var(--shadow-soft);
         }
         .athena-table td {
           display: flex;
           justify-content: space-between;
           align-items: center;
           padding: 0.5rem 0;
-          border-bottom: 1px solid #f8fafc;
+          border-bottom: 1px solid #243348;
           text-align: right;
         }
         .athena-table td:last-child {
@@ -132,7 +233,7 @@
           content: attr(data-label);
           font-weight: 600;
           font-size: 0.75rem;
-          color: #64748b;
+          color: #8fa4be;
           text-transform: uppercase;
           text-align: left;
           flex: 1;
@@ -161,79 +262,585 @@
         position: relative;
         overflow: hidden;
         padding: 1.5rem;
-        border-radius: 1rem;
-        border: 1px solid #f1f5f9;
-        background: white;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border-radius: 1.1rem;
+        border: 1px solid var(--line);
+        background: #1a2330;
+        box-shadow: var(--shadow-soft);
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
+        animation: fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      .summary-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto auto 0;
+        width: 100%;
+        height: 2px;
+        background: #44596f;
+        opacity: 1;
       }
 
       .summary-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        border-color: #4e6176;
+        box-shadow: var(--shadow-surface);
       }
 
       .summary-card.summary-card--active {
-        border-color: #6366f1;
-        outline: 2px solid #6366f1;
-        background-color: #f5f7ff;
+        border-color: #6b8098;
+        outline: 2px solid rgba(107, 128, 152, 0.5);
+        background: #212d3b;
       }
 
       .summary-card-label {
         font-size: 0.875rem;
-        font-weight: 500;
-        color: #64748b;
+        font-weight: 600;
+        color: #a6b3c2;
       }
 
       .summary-card-value {
         font-size: 1.875rem;
-        font-weight: 700;
-        color: #0f172a;
+        font-weight: 800;
+        color: #ecf4ff;
+        line-height: 1.1;
       }
 
       .summary-card-icon {
         width: 2.5rem;
         height: 2.5rem;
-        border-radius: 0.5rem;
+        border-radius: 0.75rem;
         display: flex;
         align-items: center;
         justify-content: center;
         margin-bottom: 0.5rem;
+        background: var(--accent-soft) !important;
+        color: var(--accent) !important;
+      }
+      .summary-card:nth-child(2) .summary-card-icon {
+        background: #2a3544 !important;
+        color: #91a8c3 !important;
+      }
+      .summary-card:nth-child(3) .summary-card-icon {
+        background: #2b3643 !important;
+        color: #95afc5 !important;
+      }
+      .summary-card:nth-child(4) .summary-card-icon {
+        background: #2d3640 !important;
+        color: #9db0c4 !important;
       }
 
-      /* Mobile Header */
+      .btn-primary {
+        padding: 0.66rem 1.2rem;
+        border-radius: 0.85rem;
+        border: 1px solid transparent;
+        background: linear-gradient(145deg, #516783 0%, #455a73 100%);
+        color: #f4f8ff;
+        font-size: 0.86rem;
+        font-weight: 700;
+        box-shadow: 0 14px 26px -18px rgba(23, 33, 47, 0.85);
+        transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+      }
+      .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 16px 30px -20px rgba(22, 33, 45, 0.88);
+        filter: brightness(1.01);
+      }
+      .btn-secondary {
+        padding: 0.66rem 1.2rem;
+        border-radius: 0.85rem;
+        border: 1px solid var(--line-strong);
+        background: var(--surface-muted);
+        color: #c2cedd;
+        font-size: 0.86rem;
+        font-weight: 700;
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+      .btn-secondary:hover {
+        transform: translateY(-1px);
+        border-color: #5d6f84;
+        box-shadow: var(--shadow-soft);
+      }
+
+      #header-search-input {
+        background: var(--surface-muted) !important;
+        border-color: var(--line) !important;
+        color: #dde7f3;
+      }
+      #header-search-input:focus {
+        border-color: #6c839d !important;
+        box-shadow: 0 0 0 3px rgba(108, 131, 157, 0.22) !important;
+      }
+      #header-search-input::placeholder {
+        color: #8e9eb2;
+      }
+
+      #table-body tr {
+        transition: background-color 0.2s ease, transform 0.2s ease;
+        animation: fade-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      #table-body tr:nth-child(2n) {
+        animation-delay: 0.03s;
+      }
+      #table-body tr:hover {
+        background: #202c3a !important;
+      }
+
+      #detail-panel {
+        background: #0f1724;
+        border-left: 1px solid var(--line);
+        box-shadow: -24px 0 56px -32px rgba(4, 20, 35, 0.55);
+        transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .selected-tutor-card {
+        background: #202a37;
+        border-color: #3b4c60 !important;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      }
+      .selected-tutor-card a {
+        color: #d6e2f0 !important;
+      }
+      .selected-tutor-card a:hover {
+        color: #f0f6ff !important;
+      }
+      .tutor-suggestion-card {
+        background: #1c2735;
+        border: 1px solid #34485f;
+      }
+      .tutor-overlap-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        border-radius: 9999px;
+        border: 1px solid #4b6077;
+        background: #2a394c;
+        color: #d8e4f2;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+      .tutor-select-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        border-radius: 9999px;
+        border: 1px solid #4a5e75;
+        background: #243142;
+        color: #d6e3f1;
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+      }
+      .tutor-select-btn:hover {
+        border-color: #5b7088;
+        background: #2b394b;
+        color: #eef4fb;
+      }
+      .tutor-select-btn.is-selected {
+        border-color: #6f839a;
+        background: #3b4c60;
+        color: #ffffff;
+      }
+      #detail-overlay,
+      #remove-confirm-overlay,
+      #sidebar-overlay {
+        backdrop-filter: blur(7px);
+      }
+      #sidebar-overlay {
+        background-color: rgba(7, 17, 29, 0.56);
+        transition: opacity 0.34s ease;
+      }
+      #detail-overlay,
+      #remove-confirm-overlay {
+        background: rgba(3, 8, 14, 0.68);
+      }
+
+      input[type="checkbox"] {
+        accent-color: #7a95b5;
+      }
+
+      #remove-confirm-dialog > div {
+        background: #121c2b;
+        border: 1px solid var(--line);
+        box-shadow: 0 30px 60px -35px rgba(9, 23, 40, 0.6);
+      }
+
+      #notification-root > div {
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow-surface);
+      }
+
       .mobile-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
         padding: 1rem 1.5rem;
-        background: white;
-        border-bottom: 1px solid #e2e8f0;
+        background: #151f2a !important;
+        border-bottom: 1px solid #2e3d50;
+        box-shadow: 0 10px 24px -20px rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(9px);
         position: sticky;
         top: 0;
         z-index: 50;
       }
+      .mobile-header .text-slate-900 {
+        color: #d9e4f2 !important;
+      }
+      .mobile-header .text-slate-600 {
+        color: #b4c4d8 !important;
+      }
+      .mobile-header #mobile-nav-open {
+        color: #b8c8dc;
+        border: 1px solid transparent;
+      }
+      .mobile-header #mobile-nav-open:hover {
+        color: #edf4fe;
+        border-color: #43586f;
+        background-color: rgba(122, 149, 181, 0.14) !important;
+      }
+      .mobile-header #mobile-nav-open:focus-visible {
+        outline: 2px solid #6b8098;
+        outline-offset: 2px;
+      }
+      .mobile-header .hover\:bg-slate-100:hover {
+        background-color: rgba(122, 149, 181, 0.14) !important;
+      }
+
+      .control-tower {
+        display: grid;
+        gap: 1rem;
+      }
+      .kpi-strip {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+      }
+      .tower-right {
+        padding: 1.25rem;
+      }
+      .ops-label {
+        color: #93a4b8;
+        font-size: 0.68rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 700;
+      }
+      .ops-value {
+        color: #d2dcea;
+        font-size: 0.92rem;
+        font-weight: 700;
+        margin-top: 0.25rem;
+      }
+      .tower-alert-list {
+        margin-top: 1rem;
+        display: grid;
+        gap: 0.65rem;
+      }
+      .tower-alert {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        border: 1px solid #33465d;
+        background: #1d2837;
+        border-radius: 0.85rem;
+        padding: 0.65rem 0.75rem;
+      }
+      .tower-alert-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #a9b8ca;
+      }
+      .tower-alert-pill {
+        min-width: 2.1rem;
+        text-align: center;
+        border-radius: 9999px;
+        border: 1px solid #4b6078;
+        background: #2a394d;
+        color: #d7e3f1;
+        padding: 0.15rem 0.5rem;
+        font-size: 0.74rem;
+        font-weight: 700;
+      }
+      .queue-workspace {
+        display: grid;
+        gap: 1rem;
+      }
+      .queue-main {
+        min-width: 0;
+      }
+      .queue-side {
+        padding: 1.25rem;
+      }
+      .queue-filter-grid {
+        margin-top: 0.85rem;
+        display: grid;
+        gap: 0.55rem;
+      }
+      .queue-filter-btn {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border: 1px solid #3b4e64;
+        border-radius: 0.8rem;
+        background: #1e2a39;
+        color: #c8d6e8;
+        padding: 0.5rem 0.7rem;
+        font-size: 0.77rem;
+        font-weight: 600;
+        transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+      }
+      .queue-filter-btn:hover {
+        border-color: #536a83;
+        background: #243243;
+        color: #edf4ff;
+      }
+      .queue-filter-btn.is-active {
+        border-color: #6a8198;
+        background: #2b3a4c;
+        color: #f1f7ff;
+      }
+      .queue-filter-btn [data-badge-count] {
+        min-width: 1.8rem;
+        text-align: center;
+        border-radius: 9999px;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 0.1rem 0.45rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+      }
+      .queue-metrics {
+        margin-top: 1rem;
+        display: grid;
+        gap: 0.65rem;
+      }
+      .queue-metric {
+        border: 1px solid #34495f;
+        border-radius: 0.8rem;
+        background: #1d2837;
+        padding: 0.7rem 0.75rem;
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.5rem;
+      }
+      .queue-metric-label {
+        color: #9eb0c5;
+        font-size: 0.76rem;
+      }
+      .queue-metric-value {
+        color: #eef4ff;
+        font-size: 1rem;
+        font-weight: 700;
+      }
+      .dashboard-main .text-slate-900 {
+        color: #edf4ff !important;
+      }
+      .dashboard-main .text-slate-700 {
+        color: #b8c9de !important;
+      }
+      .dashboard-main .text-slate-600 {
+        color: #9aaec7 !important;
+      }
+      .dashboard-main .text-slate-500 {
+        color: #97a7bb !important;
+      }
+      .dashboard-main .text-slate-400 {
+        color: #839ab6 !important;
+      }
+      .dashboard-main .bg-slate-50,
+      .dashboard-main .bg-slate-50\/50,
+      .dashboard-main .bg-slate-100 {
+        background-color: #152235 !important;
+      }
+      .dashboard-main .bg-blue-50 {
+        background-color: #243243 !important;
+      }
+      .dashboard-main .text-blue-700 {
+        color: #9ab1cb !important;
+      }
+      .dashboard-main .border-blue-100 {
+        border-color: #37475a !important;
+      }
+      .dashboard-main .bg-emerald-50 {
+        background-color: #24323f !important;
+      }
+      .dashboard-main .text-emerald-700 {
+        color: #9bb2ca !important;
+      }
+      .dashboard-main .border-emerald-100 {
+        border-color: #374859 !important;
+      }
+      .dashboard-main .text-emerald-600 {
+        color: #a4b8ce !important;
+      }
+      .dashboard-main .bg-emerald-500 {
+        background-color: #637a94 !important;
+      }
+      .dashboard-main .bg-amber-500 {
+        background-color: #7c6f5c !important;
+      }
+      .dashboard-main .text-amber-600,
+      .dashboard-main .text-amber-700 {
+        color: #c0b096 !important;
+      }
+      .dashboard-main .bg-amber-50,
+      .dashboard-main .bg-amber-100 {
+        background-color: #312d25 !important;
+      }
+      .dashboard-main .border-amber-200 {
+        border-color: #494234 !important;
+      }
+      .dashboard-main .border-slate-100,
+      .dashboard-main .border-slate-200,
+      .dashboard-main .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+        border-color: #233246 !important;
+      }
+      .dashboard-main .shadow-sm,
+      .dashboard-main .shadow-lg {
+        box-shadow: var(--shadow-soft) !important;
+      }
+      #detail-panel .text-slate-900,
+      #remove-confirm .text-slate-900 {
+        color: #edf4ff !important;
+      }
+      #detail-panel .text-slate-600,
+      #remove-confirm .text-slate-600 {
+        color: #a5b8cf !important;
+      }
+      #detail-panel .text-slate-500,
+      #remove-confirm .text-slate-500 {
+        color: #92a7c3 !important;
+      }
+      #detail-panel .text-slate-400,
+      #remove-confirm .text-slate-400 {
+        color: #8098b4 !important;
+      }
+      #detail-panel .text-emerald-500,
+      #detail-panel .text-emerald-600,
+      #detail-panel .text-emerald-700,
+      #remove-confirm .text-emerald-500,
+      #remove-confirm .text-emerald-600,
+      #remove-confirm .text-emerald-700 {
+        color: #9fb4cb !important;
+      }
+      #detail-panel .text-amber-500,
+      #detail-panel .text-amber-600,
+      #detail-panel .text-amber-700,
+      #remove-confirm .text-amber-500,
+      #remove-confirm .text-amber-600,
+      #remove-confirm .text-amber-700 {
+        color: #c1b299 !important;
+      }
+      #detail-panel .bg-emerald-50,
+      #detail-panel .bg-emerald-100,
+      #remove-confirm .bg-emerald-50,
+      #remove-confirm .bg-emerald-100 {
+        background: #243140 !important;
+      }
+      #detail-panel .bg-amber-50,
+      #detail-panel .bg-amber-100,
+      #remove-confirm .bg-amber-50,
+      #remove-confirm .bg-amber-100 {
+        background: #302c24 !important;
+      }
+      #detail-panel .border-emerald-200,
+      #remove-confirm .border-emerald-200 {
+        border-color: #36485a !important;
+      }
+      #detail-panel .border-amber-200,
+      #remove-confirm .border-amber-200 {
+        border-color: #4a4335 !important;
+      }
+      #detail-panel .bg-white,
+      #remove-confirm .bg-white {
+        background: #111c2c !important;
+      }
+      #detail-panel .bg-slate-50,
+      #detail-panel .bg-slate-100,
+      #remove-confirm .bg-slate-50,
+      #remove-confirm .bg-slate-100 {
+        background: #172638 !important;
+      }
+      #detail-panel .border-slate-100,
+      #detail-panel .border-slate-200,
+      #remove-confirm .border-slate-100,
+      #remove-confirm .border-slate-200,
+      #remove-confirm .border-slate-300 {
+        border-color: #26384f !important;
+      }
+      #detail-panel input,
+      #remove-confirm input {
+        background: #162338 !important;
+        color: #d9e7f9 !important;
+        border-color: #2a3f59 !important;
+      }
+      #detail-panel input::placeholder,
+      #remove-confirm input::placeholder {
+        color: #88a1bf !important;
+      }
+      #remove-confirm-submit {
+        background: #9d353b !important;
+      }
+      #remove-confirm-submit:hover {
+        background: #b0424a !important;
+      }
+
+      @media (min-width: 1024px) {
+        .control-tower {
+          grid-template-columns: minmax(0, 1.55fr) minmax(300px, 0.9fr);
+          align-items: stretch;
+        }
+        .kpi-strip {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 1rem;
+        }
+        .queue-workspace {
+          grid-template-columns: minmax(0, 1.8fr) minmax(290px, 0.82fr);
+          align-items: start;
+        }
+        .queue-side {
+          position: sticky;
+          top: 1rem;
+        }
+      }
+
+      @keyframes fade-up {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
       @media (min-width: 1024px) {
         .mobile-header {
           display: none;
         }
       }
 
-      #sidebar-overlay {
-        background-color: rgba(15, 23, 42, 0.5);
-        backdrop-filter: blur(4px);
-        transition: opacity 0.3s ease;
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
       }
     </style>
   </head>
-  <body class="h-full text-slate-700 bg-slate-50">
-    <div class="relative flex min-h-screen bg-white flex-col lg:flex-row">
+  <body class="h-full text-slate-700">
+    <div class="dashboard-shell relative flex min-h-screen flex-col lg:flex-row">
       <!-- Mobile Header -->
-      <header class="mobile-header w-full lg:hidden bg-white">
+      <header class="mobile-header w-full lg:hidden">
         <div class="flex items-center gap-3">
           <img src="img/slink.png" alt="Slink Logo" class="h-8 w-auto flex-shrink-0" />
           <span class="text-xl font-bold text-slate-900 tracking-tight">Slink.</span>
@@ -263,7 +870,7 @@
 
         <div class="px-4 py-2">
           <div class="relative">
-            <input type="text" id="search-input" placeholder="Search clients..." class="w-full bg-slate-100 border-none rounded-lg py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-indigo-500 transition-all" />
+            <input type="text" id="search-input" placeholder="Search clients..." class="w-full bg-slate-100 border-none rounded-lg py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-slate-500 transition-all" />
             <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
           </div>
         </div>
@@ -298,13 +905,13 @@
         </nav>
 
         <div class="p-4 mt-auto">
-          <div class="bg-indigo-600 rounded-2xl p-5 text-white shadow-lg shadow-indigo-200">
+          <div class="rounded-2xl p-5 text-white shadow-lg">
             <p class="text-[10px] font-bold uppercase tracking-wider opacity-80">Intelligence Insights</p>
             <p class="text-sm mt-2 leading-relaxed">Real-time monitoring of your skill lifecycle.</p>
           </div>
           <div class="mt-6 flex items-center gap-3 px-2 border-t border-slate-200 pt-6">
             <div class="w-10 h-10 rounded-full bg-slate-200 overflow-hidden ring-2 ring-white">
-                <img src="https://ui-avatars.com/api/?name=Admin+User&background=6366f1&color=fff" alt="User" />
+                <img src="https://ui-avatars.com/api/?name=Admin+User&background=465b70&color=fff" alt="User" />
             </div>
             <div class="flex-1 min-w-0">
                 <p class="text-sm font-bold text-slate-900 truncate">Admin User</p>
@@ -315,93 +922,157 @@
       </aside>
 
       <!-- Main Content -->
-      <main class="flex-1 bg-white overflow-y-auto scrollbar-thin min-h-screen lg:min-h-0">
+      <main class="dashboard-main flex-1 overflow-y-auto scrollbar-thin min-h-screen lg:min-h-0">
         <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
           <header class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-6 mb-10">
             <div>
-              <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Invoices & Registrations</h1>
-              <p class="text-slate-500 mt-1.5 text-sm sm:text-base">Explore your full registration history and transaction data.</p>
+              <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Learner Registration & Tutor Matching</h1>
+              <p class="text-slate-500 mt-1.5 text-sm sm:text-base">Manage intake, review readiness, and connect each learner with the right tutor.</p>
             </div>
             <div class="flex flex-wrap items-center gap-3">
-                <button id="reset-filters" class="flex-1 sm:flex-none px-5 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-all">Reset Filters</button>
-                <button class="flex-1 sm:flex-none px-5 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-sm">
+                <button id="reset-filters" class="btn-secondary flex-1 sm:flex-none">Clear Filters</button>
+                <button class="btn-primary flex-1 sm:flex-none flex items-center justify-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-                    Create Registration
+                    Add Learner
                 </button>
             </div>
           </header>
 
-          <!-- Summary Stats -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-10">
-            <div class="summary-card" data-summary-card="registered">
-                <div class="summary-card-icon bg-indigo-50 text-indigo-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          <section class="control-tower mb-8">
+            <div class="kpi-strip">
+              <div class="summary-card" data-summary-card="registered">
+                <div class="summary-card-icon">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                 </div>
                 <span class="summary-card-label">Total Registrations</span>
                 <span class="summary-card-value" data-summary-value>0</span>
-            </div>
-            <div class="summary-card" data-summary-card="newSkill">
-                <div class="summary-card-icon bg-sky-50 text-sky-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              </div>
+              <div class="summary-card" data-summary-card="newSkill">
+                <div class="summary-card-icon">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                 </div>
                 <span class="summary-card-label">New Skills</span>
                 <span class="summary-card-value" data-summary-value>0</span>
-            </div>
-            <div class="summary-card" data-summary-card="connected">
-                <div class="summary-card-icon bg-emerald-50 text-emerald-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <div class="summary-card" data-summary-card="connected">
+                <div class="summary-card-icon">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
                 <span class="summary-card-label">Connected</span>
                 <span class="summary-card-value" data-summary-value>0</span>
-            </div>
-            <div class="summary-card" data-summary-card="pending">
-                <div class="summary-card-icon bg-amber-50 text-amber-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <div class="summary-card" data-summary-card="pending">
+                <div class="summary-card-icon">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
                 <span class="summary-card-label">Pending Review</span>
                 <span class="summary-card-value" data-summary-value>0</span>
+              </div>
             </div>
-          </div>
 
-          <!-- Table Section -->
-          <div class="athena-card">
-            <div class="flex flex-col md:flex-row justify-between md:items-center gap-6 mb-8">
+            <aside class="tower-right athena-card">
+              <p class="ops-label">Control Tower</p>
+              <h3 class="mt-1 text-lg font-bold text-slate-900">Operations Alerts</h3>
+              <p class="mt-1 text-sm text-slate-500">Live queue pressure and throughput signals for the active intake cycle.</p>
+              <div class="tower-alert-list">
+                <div class="tower-alert">
+                  <span class="tower-alert-label">Pending Reviews</span>
+                  <span class="tower-alert-pill" data-badge-count="pending">0</span>
+                </div>
+                <div class="tower-alert">
+                  <span class="tower-alert-label">Connected This Cycle</span>
+                  <span class="tower-alert-pill" data-badge-count="connected">0</span>
+                </div>
+                <div class="tower-alert">
+                  <span class="tower-alert-label">Mailed Candidates</span>
+                  <span class="tower-alert-pill" data-badge-count="mailed">0</span>
+                </div>
+              </div>
+            </aside>
+          </section>
+
+          <section class="queue-workspace">
+            <div id="registry-section" class="athena-card queue-main">
+              <div class="mb-7 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div class="flex-1">
-                    <h3 class="text-xl font-bold text-slate-900 tracking-tight">Registration Lists</h3>
-                    <p class="text-sm text-slate-500 mt-0.5">Registration history for the past 30 days</p>
+                  <h3 class="text-xl font-bold text-slate-900 tracking-tight">Registration Queue</h3>
+                  <p class="text-sm text-slate-500 mt-0.5">Primary intake queue with actionable status controls and tutor matching readiness.</p>
                 </div>
-                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-                    <div class="relative flex-1 sm:w-80">
-                        <input type="text" id="header-search-input" placeholder="Search client or skill..." class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm" />
-                        <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                    </div>
-                    <div class="flex items-center justify-between sm:justify-start gap-3 bg-slate-50/50 px-3 py-2 rounded-xl border border-slate-100">
-                        <div class="flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Sync Active</span>
-                        </div>
-                    </div>
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <div class="relative flex-1 sm:w-80">
+                    <input type="text" id="header-search-input" placeholder="Search client, skill, or location..." class="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-all shadow-sm" />
+                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                  </div>
+                  <div class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50/50 px-3 py-2">
+                    <span class="h-2 w-2 rounded-full bg-slate-400"></span>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-slate-300">Realtime Sync Active</span>
+                  </div>
                 </div>
+              </div>
+
+              <div class="overflow-x-auto lg:-mx-6 lg:px-6">
+                <table class="w-full athena-table" id="people-table">
+                  <thead>
+                    <tr>
+                      <th class="text-left w-12"><input type="checkbox" class="rounded text-slate-300 focus:ring-slate-500" /></th>
+                      <th class="text-left">Registrant</th>
+                      <th class="text-left">Skills Matrix</th>
+                      <th class="text-left">Status</th>
+                      <th class="text-left">Readiness</th>
+                      <th class="text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-body">
+                    <!-- populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            <div class="overflow-x-auto lg:-mx-6 lg:px-6">
-                <table class="w-full athena-table" id="people-table">
-                    <thead>
-                        <tr>
-                            <th class="text-left w-12"><input type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500" /></th>
-                            <th class="text-left">Registrant</th>
-                            <th class="text-left">Skills Matrix</th>
-                            <th class="text-left">Status</th>
-                            <th class="text-left">Readiness</th>
-                            <th class="text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-body">
-                        <!-- populated dynamically -->
-                    </tbody>
-                </table>
-            </div>
-          </div>
+            <aside class="athena-card queue-side">
+              <p class="ops-label">Queue Focus</p>
+              <h3 class="mt-1 text-base font-bold text-slate-900">Filter Shortcuts</h3>
+              <p class="mt-1 text-sm text-slate-500">Switch review context quickly while monitoring volume and handoff status.</p>
+
+              <div class="queue-filter-grid">
+                <button class="queue-filter-btn is-active" data-queue-filter="registered">
+                  <span>All Intake</span>
+                  <span data-badge-count="registered">0</span>
+                </button>
+                <button class="queue-filter-btn" data-queue-filter="pending-skill">
+                  <span>Pending Review</span>
+                  <span data-badge-count="pending">0</span>
+                </button>
+                <button class="queue-filter-btn" data-queue-filter="connected-skill">
+                  <span>Connected</span>
+                  <span data-badge-count="connected">0</span>
+                </button>
+                <button class="queue-filter-btn" data-queue-filter="new-skill">
+                  <span>New Skill</span>
+                  <span data-badge-count="newSkill">0</span>
+                </button>
+                <button class="queue-filter-btn" data-queue-filter="mailed">
+                  <span>Mailed</span>
+                  <span data-badge-count="mailed">0</span>
+                </button>
+              </div>
+
+              <div class="queue-metrics">
+                <div class="queue-metric">
+                  <span class="queue-metric-label">Total Queue</span>
+                  <span class="queue-metric-value" data-badge-count="registered">0</span>
+                </div>
+                <div class="queue-metric">
+                  <span class="queue-metric-label">Needs Review</span>
+                  <span class="queue-metric-value" data-badge-count="pending">0</span>
+                </div>
+                <div class="queue-metric">
+                  <span class="queue-metric-label">Connected</span>
+                  <span class="queue-metric-value" data-badge-count="connected">0</span>
+                </div>
+              </div>
+            </aside>
+          </section>
 
           <!-- Mailed Section (Hidden unless filtered) -->
           <div id="mailed-section" class="athena-card mt-10 hidden">
@@ -527,7 +1198,7 @@
           </section>
           <section
             id="detail-selected-tutor"
-            class="hidden rounded-2xl border border-slate-200 bg-white/60 px-4 py-4"
+            class="selected-tutor-card hidden rounded-2xl border px-4 py-4"
           >
             <div class="flex items-start justify-between gap-3">
               <div>
@@ -536,7 +1207,7 @@
               </div>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                class="h-4 w-4 text-emerald-500"
+                class="h-4 w-4 text-slate-300"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -773,9 +1444,11 @@
 
       const navButtons = document.querySelectorAll(".nav-item");
       const summaryCards = document.querySelectorAll("[data-summary-card]");
+      const queueFilterButtons = document.querySelectorAll("[data-queue-filter]");
       const registrySection = document.getElementById("registry-section");
       const tableBody = document.getElementById("table-body");
       const searchInput = document.getElementById("search-input");
+      const headerSearchInput = document.getElementById("header-search-input");
       const resetButton = document.getElementById("reset-filters");
       const notificationRoot = document.getElementById("notification-root");
       const removeConfirmRoot = document.getElementById("remove-confirm");
@@ -1695,7 +2368,7 @@
 
             return `
               <tr class="hover:bg-slate-50 transition-colors cursor-pointer group" data-person-id="${person.id}">
-                <td class="athena-table td"><input type="checkbox" class="rounded text-indigo-600" /></td>
+                <td class="athena-table td"><input type="checkbox" class="rounded text-slate-300" /></td>
                 <td class="athena-table td" data-label="Registrant">
                   <div class="flex items-center gap-3">
                     <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500">
@@ -1725,7 +2398,7 @@
                 </td>
                 <td class="athena-table td" data-label="Status">
                   <div class="flex items-center gap-2">
-                    <input type="checkbox" class="status-toggle-checkbox h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500" 
+                    <input type="checkbox" class="status-toggle-checkbox h-4 w-4 rounded text-slate-300 focus:ring-slate-500" 
                       data-status-checkbox="${person.id}" ${person.status === "connected" ? "checked" : ""} />
                     <span class="athena-status-pill ${statusClass} capitalize">${person.status}</span>
                   </div>
@@ -1739,7 +2412,7 @@
                 <td class="athena-table td text-right" data-label="Actions">
                   <div class="flex items-center justify-end gap-3">
                     <label class="flex items-center gap-1 cursor-pointer">
-                      <input type="checkbox" class="email-sent-checkbox h-4 w-4 rounded text-indigo-600" 
+                      <input type="checkbox" class="email-sent-checkbox h-4 w-4 rounded text-slate-300" 
                         data-email-checkbox="${person.id}" ${isEmailSent ? "checked" : ""} />
                       <span class="text-xs text-slate-500">Mail</span>
                     </label>
@@ -1821,6 +2494,11 @@
           card.setAttribute("aria-pressed", String(isActive));
         });
 
+        queueFilterButtons.forEach((button) => {
+          const isActive = button.dataset.queueFilter === filter;
+          button.classList.toggle("is-active", isActive);
+        });
+
         renderTable();
         renderMailedList();
       }
@@ -1843,6 +2521,7 @@
       function resetFilters() {
         state.searchQuery = "";
         if (searchInput) searchInput.value = "";
+        if (headerSearchInput) headerSearchInput.value = "";
         setActiveFilter("registered");
         updateCounts();
         renderTable();
@@ -1907,6 +2586,15 @@
         });
       });
 
+      queueFilterButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const filter = button.dataset.queueFilter;
+          if (!filter) return;
+          setActiveFilter(filter);
+          registrySection?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      });
+
       summaryCards.forEach((card) => {
         const summaryKey = card.getAttribute("data-summary-card");
         const filter = SUMMARY_TO_FILTER[summaryKey];
@@ -1951,6 +2639,15 @@
       if (searchInput) {
         searchInput.addEventListener("input", (event) => {
           state.searchQuery = event.target.value;
+          if (headerSearchInput) headerSearchInput.value = state.searchQuery;
+          renderTable();
+        });
+      }
+
+      if (headerSearchInput) {
+        headerSearchInput.addEventListener("input", (event) => {
+          state.searchQuery = event.target.value;
+          if (searchInput) searchInput.value = state.searchQuery;
           renderTable();
         });
       }
@@ -2467,7 +3164,7 @@
           ? matches
               .map(
                 ({ tutor, overlapping }) => `
-                  <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div class="tutor-suggestion-card rounded-2xl px-4 py-3">
                     <div class="flex items-start justify-between gap-3">
                       <div>
                         <p class="text-sm font-semibold text-slate-900">${tutor.name}</p>
@@ -2476,13 +3173,13 @@
                           tutor.phone || "No phone on file"
                         ].join(" · ")}</p>
                       </div>
-                      <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                      <span class="tutor-overlap-chip">
                         ${overlapping.join(", ")}
                       </span>
                     </div>
                     <p class="mt-2 text-xs text-slate-500">Location: ${tutor.location || "—"}</p>
                     <button
-                      class="mt-3 inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                      class="tutor-select-btn mt-3"
                       data-select-tutor="${tutor.id}"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -2511,14 +3208,23 @@
           }
           connectButton.classList.toggle("bg-slate-900", !hasSelection);
           connectButton.classList.toggle("hover:bg-slate-700", !hasSelection);
-          connectButton.classList.toggle("bg-emerald-600", hasSelection);
-          connectButton.classList.toggle("hover:bg-emerald-700", hasSelection);
+          connectButton.classList.toggle("bg-slate-700", hasSelection);
+          connectButton.classList.toggle("hover:bg-slate-600", hasSelection);
           connectButton.innerHTML = hasSelection
             ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 12.75l6 6 9-13.5" /></svg>Connect ${(person.name || "learner").split(/\s+/)[0]} to tutor`
             : defaultConnectLabel;
         };
 
         updateConnectState();
+
+        if (state.selectedTutorId) {
+          const preselectedTutorButton = detailTutorSuggestions.querySelector(
+            `[data-select-tutor="${state.selectedTutorId}"]`
+          );
+          if (preselectedTutorButton) {
+            preselectedTutorButton.classList.add("is-selected");
+          }
+        }
 
         detailTutorSuggestions.querySelectorAll("[data-select-tutor]").forEach((button) => {
           button.addEventListener("click", () => {
@@ -2529,11 +3235,9 @@
             renderSelectedTutor(selectedTutor);
 
             detailTutorSuggestions.querySelectorAll("[data-select-tutor]").forEach((other) => {
-              other.classList.remove("border-slate-900", "text-slate-900", "bg-slate-900", "text-white");
-              other.classList.add("border-slate-300", "text-slate-600", "bg-white");
+              other.classList.remove("is-selected");
             });
-            button.classList.remove("border-slate-300", "text-slate-600", "bg-white");
-            button.classList.add("border-slate-900", "text-white", "bg-slate-900");
+            button.classList.add("is-selected");
             updateConnectState();
           });
         });
