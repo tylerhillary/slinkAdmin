@@ -1,0 +1,185 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * ---------------------------------------------------------------------------
+ * Design tokens
+ * ---------------------------------------------------------------------------
+ * Raw HSL channels only. Tailwind composes them via `hsl(var(--token) / alpha)`
+ * so every surface, border and text colour supports opacity modifiers.
+ * Light is the base contract; dark overrides the same names.
+ */
+@layer base {
+  :root {
+    --canvas: 240 20% 98.5%;
+    --surface: 0 0% 100%;
+    --surface-subtle: 240 16% 97%;
+    --surface-raised: 0 0% 100%;
+
+    --line: 240 8% 90%;
+    --line-strong: 240 8% 82%;
+
+    --content: 240 12% 11%;
+    --content-muted: 240 5% 44%;
+    --content-subtle: 240 5% 62%;
+    --content-inverted: 0 0% 100%;
+
+    --accent: 233 74% 55%;
+    --accent-hover: 233 74% 48%;
+    --accent-soft: 233 88% 96%;
+    --accent-ring: 233 74% 55%;
+
+    --success: 158 68% 30%;
+    --success-soft: 152 62% 95%;
+    --warning: 32 84% 38%;
+    --warning-soft: 44 92% 94%;
+    --danger: 0 68% 47%;
+    --danger-soft: 0 86% 96%;
+    --info: 214 78% 44%;
+    --info-soft: 214 92% 95%;
+
+    --shadow: 240 30% 20%;
+
+    --sidebar-width: 15.5rem;
+    --sidebar-width-collapsed: 4.25rem;
+    --topbar-height: 3.5rem;
+  }
+
+  [data-theme="dark"] {
+    --canvas: 240 10% 5.5%;
+    --surface: 240 9% 8%;
+    --surface-subtle: 240 8% 11%;
+    --surface-raised: 240 8% 12.5%;
+
+    --line: 240 7% 17%;
+    --line-strong: 240 7% 26%;
+
+    --content: 240 20% 96%;
+    --content-muted: 240 6% 60%;
+    --content-subtle: 240 6% 44%;
+    --content-inverted: 240 12% 8%;
+
+    --accent: 233 84% 68%;
+    --accent-hover: 233 84% 74%;
+    --accent-soft: 233 46% 18%;
+    --accent-ring: 233 84% 68%;
+
+    --success: 158 58% 60%;
+    --success-soft: 158 42% 14%;
+    --warning: 40 78% 62%;
+    --warning-soft: 38 44% 14%;
+    --danger: 0 74% 68%;
+    --danger-soft: 0 42% 16%;
+    --info: 214 84% 68%;
+    --info-soft: 214 44% 16%;
+
+    --shadow: 240 60% 2%;
+  }
+
+  * {
+    @apply border-line;
+  }
+
+  html {
+    @apply antialiased;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-canvas text-content font-sans text-base;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
+    font-variant-ligatures: contextual;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply text-content font-semibold tracking-tight;
+  }
+
+  /* Deliberate numeric alignment for every metric surface. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  ::selection {
+    @apply bg-accent/20 text-content;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent-ring/60 ring-offset-2 ring-offset-canvas;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    @apply text-content-subtle;
+  }
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--line-strong)) transparent;
+  }
+}
+
+@layer components {
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-line-strong/60;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    @apply bg-line-strong;
+  }
+
+  /* Hairline grid used by data tables and metric strips. */
+  .rule-x {
+    @apply border-b border-line;
+  }
+
+  .rule-y {
+    @apply border-r border-line;
+  }
+}
+
+@layer utilities {
+  .transition-enterprise {
+    @apply transition-all duration-150 ease-in-out;
+  }
+
+  .skeleton {
+    @apply relative overflow-hidden rounded bg-surface-subtle;
+  }
+
+  .skeleton::after {
+    @apply absolute inset-0 -translate-x-full animate-shimmer;
+    content: "";
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--line) / 0.55),
+      transparent
+    );
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
