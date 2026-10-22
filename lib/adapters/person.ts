@@ -35,6 +35,14 @@ function asDateLike(value: unknown): DateLike {
  * Field-name fallbacks are preserved verbatim from the previous dashboard so
  * that every document already in Firestore keeps resolving identically.
  */
+/** The first candidate that is a non-blank string, trimmed; otherwise "". */
+function firstText(candidates: readonly unknown[]): string {
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+  }
+  return "";
+}
+
 const INTRODUCTION_STATUSES: readonly IntroductionStatus[] = ["sent", "partial", "failed", "draft"];
 
 /** The `introduction` map written by the server when a connection is announced. */
@@ -217,7 +225,14 @@ export function adaptPerson(snapshot: DocumentLike): Person {
     id: snapshot.id,
     name: typeof data.fullName === "string" ? data.fullName : "Unknown registrant",
     email: readString(data.email),
-    phone: readString(coalesce([data.phone, data.phoneNumber, data.contactNumber])),
+    phone: firstText([
+      data.phone,
+      data.phoneNumber,
+      data.contactNumber,
+      data.contactPhone,
+      // Written by the app's form; the only phone field on some registrations.
+      (data.phoneDetails as { e164?: unknown } | undefined)?.e164,
+    ]),
     location: readString(data.location),
     createdAtLabel: formatDateLabel(asDateLike(data.createdAt)),
     createdAtValue: toEpochMillis(asDateLike(data.createdAt)),

@@ -144,3 +144,38 @@ export function firstName(name: string): string {
   const first = name.trim().split(/[\s,]+/).filter(Boolean)[0] ?? "";
   return first || name.trim() || "learner";
 }
+
+/**
+ * A phone number as it should appear in a letter to another person.
+ *
+ * Nigerian numbers (every one on file today) are shown grouped and dialable:
+ * `+234 803 123 4567`. Two registrations stored the national trunk zero after
+ * the country code (`+2340803…`), which no phone can dial; that zero is
+ * dropped. Anything else is returned exactly as entered rather than guessed at.
+ */
+export function formatPhoneNumber(raw: string): string {
+  const typed = raw.trim();
+  const compact = typed.replace(/[\s().-]/g, "");
+
+  const nigerian = /^\+234(?:0)?(\d{10})$/.exec(compact);
+  if (nigerian?.[1]) {
+    const local = nigerian[1];
+    return `+234 ${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6)}`;
+  }
+  return typed;
+}
+
+/**
+ * A name as it should appear on a letter: each word starting with a capital.
+ *
+ * Only the first letter of a word typed in lower case is touched, so
+ * "McDonald", "O'Neil" and deliberate capitals are left exactly as entered.
+ */
+export function properName(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => (/^[a-z]/.test(word) ? word.charAt(0).toUpperCase() + word.slice(1) : word))
+    .join(" ");
+}

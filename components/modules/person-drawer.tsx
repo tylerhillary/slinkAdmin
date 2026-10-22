@@ -666,9 +666,9 @@ const INTRODUCTION_SECTION_ID = "person-drawer-introduction";
 /**
  * What an introduction for this pair will hand over, said before it happens.
  *
- * Members who joined on the website give the other side their first name,
- * email and state. Members with the app give only the channels they chose
- * there — and an app member who chose none is the one case worth a warning:
+ * Members who joined on the website give the other side their full name,
+ * email, phone number and state. Members with the app give only the channels
+ * they chose there — and an app member who chose none is the one case worth a warning:
  * the other person will learn who they were matched with and be handed no way
  * to reach them.
  *
@@ -721,8 +721,8 @@ function IntroductionPreview({
       <p className="flex items-start gap-1.5 text-2xs leading-relaxed text-content-muted">
         <Send className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
         <span>
-          {how} Each gets the other&apos;s first name and state, plus their email, or the
-          channels they chose if they use the app. Phone numbers stay with the desk.
+          {how} Each receives the other&apos;s full name, email, phone number and state,
+          or, for members who use the app, only the channels they chose there.
         </span>
       </p>
     </div>

@@ -1,7 +1,7 @@
 import { PORTAL_URL, SENDER_EMAIL } from "@/lib/firebase/config";
 import type { Person } from "@/types";
 
-import { firstName } from "./format";
+import { firstName, formatPhoneNumber, properName } from "./format";
 import { overlappingSkills } from "./matching";
 
 function mailto(to: string, subject: string, body: string): string {
@@ -63,26 +63,33 @@ export interface ConsentedContact {
 }
 
 const CHANNEL_LABELS: Record<string, string> = {
-  phone: "Phone",
+  phone: "Telephone",
   whatsapp: "WhatsApp",
-  email: "Email",
+  email: "Email address",
   telegram: "Telegram",
   instagram: "Instagram",
   linkedin: "LinkedIn",
-  other: "Also",
+  other: "Other contact",
 };
+
+/** Channels whose value is a phone number, and so is shown in dialable form. */
+const PHONE_CHANNELS = new Set(["phone", "whatsapp"]);
 
 /**
  * What an introduction may say about a person, decided by how they joined.
  *
  * `app` — they have an account. Only the channels they chose there are passed
- * on, which may be none: that is their call, and it is respected.
+ * on, which may be none: that is their call, and it is respected, including
+ * when the registration form holds a phone number they chose not to share.
  *
  * `registration` — they joined on the website and have never opened the app,
- * so there are no chosen channels to go by. Their introduction carries their
- * first name, email address and state: the desk's decision of 22 October 2026
- * on what an introduction needs. Phone numbers stay with the desk, as the
- * privacy policy says ("so the desk can reach you about your match").
+ * so there are no chosen channels to go by. Their introduction carries what
+ * the desk decided an introduction needs (22 October 2026): full name, email
+ * address, telephone number and state.
+ *
+ * The privacy policy at version 2026-09-05 describes the phone number as being
+ * "so the desk can reach you about your match"; it needs to say that matches
+ * receive it too.
  */
 export type IntroductionReach =
   | { kind: "app"; contacts: ConsentedContact[] }
@@ -110,12 +117,17 @@ function sharedChannels(person: Person, reach: IntroductionReach): string[] {
   if (reach.kind === "app") {
     return reach.contacts
       .filter((contact) => contact.value.trim().length > 0)
-      .map(
-        (contact) =>
-          `${CHANNEL_LABELS[contact.channel] ?? "Contact"}: ${contact.value.trim()}`,
-      );
+      .map((contact) => {
+        const value = contact.value.trim();
+        const label = CHANNEL_LABELS[contact.channel] ?? "Contact";
+        return `${label}: ${PHONE_CHANNELS.has(contact.channel) ? formatPhoneNumber(value) : value}`;
+      });
   }
-  return person.email ? [`Email: ${person.email}`] : [];
+
+  const lines: string[] = [];
+  if (person.email) lines.push(`Email address: ${person.email}`);
+  if (person.phone) lines.push(`Telephone: ${formatPhoneNumber(person.phone)}`);
+  return lines;
 }
 
 /** Whether the other side will be handed any way to contact this person. */
@@ -125,18 +137,37 @@ function isReachable(person: Person, reach: IntroductionReach): boolean {
 
 /** The block describing one side of the match to the other. */
 function detailsOf(person: Person, reach: IntroductionReach): string {
-  const lines = [`Name: ${firstName(person.name)}`, ...sharedChannels(person, reach)];
+  const channels = sharedChannels(person, reach);
+  const lines = [`Full name: ${properName(person.name)}`, ...channels];
+  if (channels.length === 0) {
+    lines.push("Contact details: to be provided by the Slink team");
+  }
   if (person.location) lines.push(`Location: ${person.location}`);
   return lines.join("\n");
 }
 
+const SUPPORT_LINE =
+  "Should you require any assistance, or if any of the information above is incorrect, please reply to this email and a member of our team will respond promptly.";
+
+/** Included whenever a letter carries another person's contact details. */
+const CONFIDENTIALITY_NOTICE =
+  "Please note that the contact details in this letter are shared solely to enable you to arrange your sessions. Kindly keep them confidential and do not pass them on to anyone else.";
+
+const SIGNATURE = [
+  "Yours sincerely,",
+  "",
+  "The Slink Matching Team",
+  `Email: ${SENDER_EMAIL}`,
+  `Web: ${PORTAL_URL}`,
+];
+
 /**
- * The learner's and the tutor's introduction emails for a connection.
+ * The learner's and the tutor's introduction letters for a connection.
  *
- * Each tells the recipient who they have been matched with and how to reach
- * them. Neither tells anyone to "get in touch" when the other side shared
- * nothing — an instruction that cannot be followed is worse than none, so the
- * copy says the desk will put them in touch instead.
+ * Written as formal correspondence: a reference line, the match's details as
+ * labelled fields, and a "Next steps" paragraph. Next steps only ask someone
+ * to make contact when they have been given a way to — an instruction that
+ * cannot be followed is worse than none — and otherwise say who will.
  */
 export function buildIntroductions(
   learner: Person,
@@ -149,26 +180,66 @@ export function buildIntroductions(
     ? overlapping.join(", ")
     : learner.learnSkills.join(", ");
 
-  const learnerFirst = firstName(learner.name);
-  const tutorFirst = firstName(tutor.name);
+  const learnerName = properName(learner.name) || "Learner";
+  const tutorName = properName(tutor.name) || "Tutor";
   const learnerReachable = isReachable(learner, learnerReach);
   const tutorReachable = isReachable(tutor, tutorReach);
 
-  // Who can make the first move depends on whose details were handed over,
-  // so each closing line names the move that is actually possible.
-  const learnerClosing = tutorReachable
-    ? `Please reach out to ${tutorFirst} to arrange your first session — they are expecting to hear from you.`
+  const learnerNextStep = tutorReachable
+    ? "Kindly contact your tutor at your earliest convenience to introduce yourself and agree on a suitable time and place for your first session." +
+      (learnerReachable ? " Your tutor has also been provided with your contact details." : "")
     : learnerReachable
-      ? `${tutorFirst} has your details and will be in touch to arrange your first session.`
-      : `We will put you in touch with ${tutorFirst} shortly.`;
+      ? "Your tutor has been provided with your contact details and will contact you to arrange your first session."
+      : "A member of the Slink team will contact you shortly to complete this introduction.";
 
-  const tutorClosing = tutorReachable && learnerReachable
-    ? `${learnerFirst} has your details too and will be in touch to arrange a first session. Feel free to reach out first.`
+  const tutorNextStep = learnerReachable
+    ? "Kindly contact the learner at your earliest convenience to introduce yourself and agree on a suitable time and place for the first session." +
+      (tutorReachable ? " The learner has also been provided with your contact details." : "")
     : tutorReachable
-      ? `${learnerFirst} has your details and will be in touch to arrange a first session.`
-      : learnerReachable
-        ? `Please reach out to ${learnerFirst} to arrange a first session.`
-        : `We will put you in touch with ${learnerFirst} shortly.`;
+      ? "The learner has been provided with your contact details and will contact you to arrange the first session."
+      : "A member of the Slink team will contact you shortly to complete this introduction.";
+
+  const subjectSkill = skill ? ` – ${skill}` : "";
+
+  const learnerText = [
+    `Dear ${learnerName},`,
+    "",
+    "RE: CONFIRMATION OF YOUR TUTOR MATCH",
+    "",
+    `We are pleased to inform you that your registration with Slink has been reviewed and you have been matched with a tutor for ${skill || "your chosen skill"}.`,
+    "",
+    "The details of your tutor are as follows:",
+    "",
+    detailsOf(tutor, tutorReach),
+    "",
+    "Next steps",
+    learnerNextStep,
+    "",
+    SUPPORT_LINE,
+    ...(tutorReachable ? ["", CONFIDENTIALITY_NOTICE] : []),
+    "",
+    ...SIGNATURE,
+  ].join("\n");
+
+  const tutorText = [
+    `Dear ${tutorName},`,
+    "",
+    "RE: NOTICE OF LEARNER ASSIGNMENT",
+    "",
+    `We are pleased to inform you that you have been assigned a learner who wishes to learn ${skill || "a skill you teach"}. Thank you for offering to share your expertise with the Slink community.`,
+    "",
+    "The details of your learner are as follows:",
+    "",
+    detailsOf(learner, learnerReach),
+    "",
+    "Next steps",
+    tutorNextStep,
+    "",
+    SUPPORT_LINE,
+    ...(learnerReachable ? ["", CONFIDENTIALITY_NOTICE] : []),
+    "",
+    ...SIGNATURE,
+  ].join("\n");
 
   const metadata = {
     learnerId: learner.id,
@@ -176,56 +247,22 @@ export function buildIntroductions(
     overlappingSkills: overlapping,
   };
 
-  const learnerText = [
-    `Hi ${learnerFirst},`,
-    "",
-    `Great news! We have matched you with ${tutorFirst}, who can help you with ${skill || "your chosen skill"}.`,
-    "",
-    "Your tutor:",
-    detailsOf(tutor, tutorReach),
-    "",
-    learnerClosing,
-    "",
-    "If you have any questions or run into any difficulty, just reply to this email.",
-    "",
-    "Best regards,",
-    "The Slink Team",
-    PORTAL_URL,
-  ].join("\n");
-
-  const tutorText = [
-    `Hi ${tutorFirst},`,
-    "",
-    `You have been matched with ${learnerFirst}, who would like to learn ${skill || "a skill you teach"}.`,
-    "",
-    "Your learner:",
-    detailsOf(learner, learnerReach),
-    "",
-    tutorClosing,
-    "",
-    "Thank you for sharing your skills with the Slink community. If anything comes up, just reply to this email.",
-    "",
-    "Best regards,",
-    "The Slink Team",
-    PORTAL_URL,
-  ].join("\n");
-
   return [
     {
       recipient: "learner",
       recipientId: learner.id,
-      recipientName: learnerFirst,
+      recipientName: firstName(learner.name),
       to: learner.email.trim(),
-      subject: `Your Slink tutor match: ${tutorFirst}`,
+      subject: `Slink: Confirmation of Your Tutor Match${subjectSkill}`,
       text: learnerText,
       metadata: { type: "learnerMatch", ...metadata },
     },
     {
       recipient: "tutor",
       recipientId: tutor.id,
-      recipientName: tutorFirst,
+      recipientName: firstName(tutor.name),
       to: tutor.email.trim(),
-      subject: `New Slink learner match: ${learnerFirst}`,
+      subject: `Slink: Notice of Learner Assignment${subjectSkill}`,
       text: tutorText,
       metadata: { type: "tutorMatch", ...metadata },
     },
