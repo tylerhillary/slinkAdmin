@@ -139,7 +139,13 @@ function isReachable(person: Person, reach: IntroductionReach): boolean {
 function detailsOf(person: Person, reach: IntroductionReach): string {
   const channels = sharedChannels(person, reach);
   const lines = [`Full name: ${properName(person.name)}`, ...channels];
-  if (channels.length === 0) {
+
+  if (reach.kind === "registration") {
+    // Every website member's letter carries a telephone line, so a number
+    // that was never given reads as missing, not as something left out.
+    if (!person.phone) lines.push("Telephone: Not provided");
+    if (channels.length === 0) lines.push("Contact details: to be provided by the Slink team");
+  } else if (channels.length === 0) {
     lines.push("Contact details: to be provided by the Slink team");
   }
   if (person.location) lines.push(`Location: ${person.location}`);
@@ -209,7 +215,7 @@ export function buildIntroductions(
     "",
     "RE: CONFIRMATION OF YOUR TUTOR MATCH",
     "",
-    `We are pleased to inform you that your registration with Slink has been reviewed and you have been matched with a tutor for ${skill || "your chosen skill"}.`,
+    `We are pleased to inform you that your registration with Slink has been reviewed and you have been matched with a tutor${skill ? ` for ${skill}` : ""}.`,
     "",
     "The details of your tutor are as follows:",
     "",
@@ -229,7 +235,7 @@ export function buildIntroductions(
     "",
     "RE: NOTICE OF LEARNER ASSIGNMENT",
     "",
-    `We are pleased to inform you that you have been assigned a learner who wishes to learn ${skill || "a skill you teach"}. Thank you for offering to share your expertise with the Slink community.`,
+    `We are pleased to inform you that you have been assigned a learner${skill ? ` who wishes to learn ${skill}` : ""}. Thank you for offering to share your expertise with the Slink community.`,
     "",
     "The details of your learner are as follows:",
     "",

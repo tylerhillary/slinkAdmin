@@ -35,6 +35,20 @@ function asDateLike(value: unknown): DateLike {
  * Field-name fallbacks are preserved verbatim from the previous dashboard so
  * that every document already in Firestore keeps resolving identically.
  */
+/**
+ * What the website's skill fields hold when somebody chose nothing.
+ *
+ * The registration form stores the literal word "None" for "no skill to learn"
+ * or "nothing to teach". Read as a skill, it matched people with nothing in
+ * common — a learner who chose nothing to a tutor who listed nothing — and
+ * printed "matched with a tutor for None" in their letters.
+ */
+const PLACEHOLDER_SKILL = /^(none|nil|null|n[./]?a|nothing|not applicable|-)$/i;
+
+function isRealSkill(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0 && !PLACEHOLDER_SKILL.test(value.trim());
+}
+
 /** The first candidate that is a non-blank string, trimmed; otherwise "". */
 function firstText(candidates: readonly unknown[]): string {
   for (const candidate of candidates) {
@@ -66,13 +80,8 @@ export function adaptPerson(snapshot: DocumentLike): Person {
     ? "connected"
     : "pending";
 
-  const teachSkills = spreadArray(data.teachSkills).filter(
-    (skill): skill is string => typeof skill === "string" && skill.length > 0,
-  );
-  const learnSkills =
-    typeof data.selectedSkill === "string" && data.selectedSkill
-      ? [data.selectedSkill]
-      : [];
+  const teachSkills = spreadArray(data.teachSkills).filter(isRealSkill).map((skill) => skill.trim());
+  const learnSkills = isRealSkill(data.selectedSkill) ? [data.selectedSkill.trim()] : [];
   const skills = [...new Set([...teachSkills, ...learnSkills])];
 
   // --- Resume ------------------------------------------------------------
