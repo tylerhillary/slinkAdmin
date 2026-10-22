@@ -1,14 +1,11 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { NextResponse } from "next/server";
 
-import { adaptPerson } from "@/lib/adapters/person";
-import {
-  buildConnectionMailto,
-  buildMatchNotifications,
-} from "@/lib/domain/email";
 import { adminDb } from "@/lib/firebase/admin";
-import { consentedContacts, resolveMemberUid } from "@/lib/server/accounts";
+import { resolveMemberUid } from "@/lib/server/accounts";
 import { NotAllowed, errorResponse, requireAdmin } from "@/lib/server/guard";
+import { deliverIntroduction } from "@/lib/server/introductions";
+import type { IntroductionDelivery } from "@/types";
 
 /**
  * Every write the console performs.
@@ -29,7 +26,7 @@ type Action =
   | { action: "setMailed"; personId: string; mailed: boolean }
   | { action: "connect"; learnerId: string; tutor: ConnectedTutor }
   | { action: "revertToPending"; personId: string }
-  | { action: "queueMail"; learnerId: string; tutorId: string }
+  | { action: "sendIntroduction"; learnerId: string }
   | { action: "remove"; personId: string };
 
 interface ConnectedTutor {
@@ -74,9 +71,9 @@ function firstName(...values: unknown[]): string | null {
 }
 
 export async function POST(request: Request) {
-  // Set by `connect`, returned to the caller so the admin's mail client can
-  // be opened with a draft the browser had no way to compose.
-  let connectionMailto = "";
+  // Set by `connect` and `sendIntroduction`: what happened to each of the
+  // two introduction emails, so the console can say so rather than assume.
+  let delivery: IntroductionDelivery | null = null;
 
   try {
     await requireAdmin(request);
@@ -100,7 +97,18 @@ export async function POST(request: Request) {
         const id = documentId((body as { learnerId?: unknown }).learnerId, "learnerId");
         const tutor = ((body as { tutor?: ConnectedTutor }).tutor ?? {}) as ConnectedTutor;
 
-        const registration = await registrations.doc(id).get();
+        const tutorId = documentId(tutor.id, "tutor.id");
+
+        const [registration, tutorDoc] = await Promise.all([
+          registrations.doc(id).get(),
+          registrations.doc(tutorId).get(),
+        ]);
+        if (!registration.exists) {
+          throw new NotAllowed(404, "That registration is gone.");
+        }
+        if (!tutorDoc.exists) {
+          throw new NotAllowed(404, "The tutor's registration is gone.");
+        }
 
         await registrations.doc(id).update({
           status: "connected",
@@ -144,16 +152,6 @@ export async function POST(request: Request) {
           registration.get("learnSkill"),
         );
 
-        // The draft the admin's mail client opens is built here too, for the
-        // same reason the queued mail is: it names the tutor's contact
-        // details, and those are only readable with the Admin SDK.
-        const tutorContacts = await consentedContacts(tutor.id, null);
-        connectionMailto = buildConnectionMailto(
-          adaptPerson(registration),
-          adaptPerson(await registrations.doc(tutor.id).get()),
-          tutorContacts,
-        );
-
         await Promise.all([
           stampMatch(learnerUid, {
             matchId: id,
@@ -173,6 +171,13 @@ export async function POST(request: Request) {
             matchSkill,
           }),
         ]);
+
+        // Announce it. The registration is read again so the introduction is
+        // built from the record as it now stands: connected, to this tutor.
+        delivery = await deliverIntroduction(
+          await registrations.doc(id).get(),
+          tutorDoc,
+        );
         break;
       }
 
@@ -210,61 +215,41 @@ export async function POST(request: Request) {
           // the admin's laptop clock said. The server's clock is the one the
           // rest of these documents are stamped with.
           revertedAt: FieldValue.serverTimestamp(),
+          // The introduction belonged to the connection being withdrawn.
+          introduction: null,
         });
         break;
       }
 
-      case "queueMail": {
-        // Built here rather than in the browser, and that is not a tidy-up.
-        //
-        // The introduction carries each member's contact details, and those
-        // now live in `users/{uid}/contacts` — a collection whose rules are
-        // `allow read: if isOwner(uid)`. The console's client is signed in as
-        // an admin, not as either member, so it cannot read them. Only the
-        // Admin SDK can, which puts the whole of this on the server.
-        //
-        // The browser therefore sends two ids and nothing else. It could not
-        // send a finished payload even if it wanted to: it cannot see what
-        // goes in one.
+      case "sendIntroduction": {
+        // Announces a connection that already exists: the ones made before
+        // the console could send mail, and any whose emails failed. Always
+        // for the tutor on record now, never one named by the caller.
         const learnerId = documentId(
           (body as { learnerId?: unknown }).learnerId,
           "learnerId",
         );
-        const tutorId = documentId(
-          (body as { tutorId?: unknown }).tutorId,
-          "tutorId",
-        );
-
-        const [learnerDoc, tutorDoc] = await Promise.all([
-          registrations.doc(learnerId).get(),
-          registrations.doc(tutorId).get(),
-        ]);
-        if (!learnerDoc.exists || !tutorDoc.exists) {
-          throw new NotAllowed(404, "One of those registrations is gone.");
+        const learnerDoc = await registrations.doc(learnerId).get();
+        if (!learnerDoc.exists) {
+          throw new NotAllowed(404, "That registration is gone.");
         }
 
-        const [learnerContacts, tutorContacts] = await Promise.all([
-          consentedContacts(learnerId, learnerDoc.get("uid")),
-          consentedContacts(tutorId, tutorDoc.get("uid")),
-        ]);
-
-        const payloads = buildMatchNotifications(
-          adaptPerson(learnerDoc),
-          adaptPerson(tutorDoc),
-          learnerContacts,
-          tutorContacts,
-        );
-        if (payloads.length === 0) break;
-
-        const batch = db.batch();
-        const mailQueue = db.collection("mailQueue");
-        for (const payload of payloads) {
-          batch.set(mailQueue.doc(), {
-            ...payload,
-            createdAt: FieldValue.serverTimestamp(),
-          });
+        const status = String(learnerDoc.get("status") ?? "").toLowerCase();
+        const tutorId = learnerDoc.get("connectedTutorId");
+        if (
+          !["connected", "verified"].includes(status) ||
+          typeof tutorId !== "string" ||
+          !tutorId.trim()
+        ) {
+          throw new NotAllowed(409, "This learner is not connected to a tutor.");
         }
-        await batch.commit();
+
+        const tutorDoc = await registrations.doc(documentId(tutorId, "connectedTutorId")).get();
+        if (!tutorDoc.exists) {
+          throw new NotAllowed(404, "The connected tutor's registration is gone.");
+        }
+
+        delivery = await deliverIntroduction(learnerDoc, tutorDoc);
         break;
       }
 
@@ -278,7 +263,7 @@ export async function POST(request: Request) {
         throw new NotAllowed(400, "Unknown action.");
     }
 
-    return NextResponse.json({ ok: true, mailto: connectionMailto });
+    return NextResponse.json({ ok: true, ...(delivery ? { delivery } : {}) });
   } catch (error) {
     return errorResponse(error);
   }

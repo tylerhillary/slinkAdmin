@@ -22,12 +22,54 @@ import {
 import { initAnalytics } from "@/lib/firebase/client";
 import {
   connectPerson as connectPersonWrite,
-  queueMatchEmails,
+  sendIntroduction as sendIntroductionWrite,
   removePerson as removePersonWrite,
   revertToPending,
   setMailedStatus,
 } from "@/lib/firebase/mutations";
-import type { FilterKey, Person, PersonStatus, SegmentCounts, Submission } from "@/types";
+import { firstName } from "@/lib/domain/format";
+import type {
+  FilterKey,
+  IntroductionDelivery,
+  IntroductionMessage,
+  MailerStatus,
+  Person,
+  PersonStatus,
+  SegmentCounts,
+  Submission,
+  ToastTone,
+} from "@/types";
+
+function namesOf(messages: IntroductionMessage[]): string {
+  return messages.map((message) => message.name).join(" and ");
+}
+
+/**
+ * One line for the toast after an introduction, saying what actually happened.
+ * "Sent" is only ever claimed for an email Gmail accepted.
+ */
+function summariseDelivery(delivery: IntroductionDelivery): { text: string; tone: ToastTone } {
+  if (delivery.mode === "draft") {
+    return {
+      text: "The two introduction emails are ready as drafts. Open them from the record to send.",
+      tone: "warning",
+    };
+  }
+
+  const sent = delivery.messages.filter((message) => message.status === "sent");
+  const missed = delivery.messages.filter((message) => message.status !== "sent");
+
+  if (sent.length > 0 && missed.length === 0) {
+    return { text: `Introduction emailed to ${namesOf(sent)}.`, tone: "success" };
+  }
+  if (sent.length > 0) {
+    return {
+      text: `Emailed ${namesOf(sent)}, but not ${namesOf(missed)}. See the record.`,
+      tone: "warning",
+    };
+  }
+  return { text: "The introduction emails were not sent. See the record.", tone: "error" };
+}
 
 /** Local overrides applied on top of snapshot data while a write is in flight. */
 interface OptimisticPatch {
@@ -67,7 +109,12 @@ interface RegistryContextValue {
 
   toggleMailed: (person: Person, mailed: boolean) => Promise<void>;
   setConnected: (person: Person, connected: boolean) => Promise<void>;
-  connectToTutor: (learner: Person, tutor: Person) => Promise<void>;
+  /** Connects and announces it. Resolves to what happened to each email. */
+  connectToTutor: (learner: Person, tutor: Person) => Promise<IntroductionDelivery>;
+  /** Announces an existing connection: past ones, or any whose emails failed. */
+  sendIntroduction: (learner: Person) => Promise<IntroductionDelivery>;
+  /** Whether the server sends mail itself or hands the desk drafts. Null until loaded. */
+  mailer: MailerStatus | null;
   confirmRemoval: (person: Person) => Promise<void>;
 }
 
@@ -83,6 +130,7 @@ export function RegistryProvider({ children }: { children: ReactNode }) {
     submissions,
     refresh,
     fetchedAt,
+    mailer,
   } = useRegistryFeed();
 
   const [activeFilter, setActiveFilterState] = useState<FilterKey>("registered");
@@ -244,19 +292,46 @@ export function RegistryProvider({ children }: { children: ReactNode }) {
     async (learner: Person, tutor: Person) => {
       applyPatch(learner.id, { status: "connected" });
       try {
-        await connectPersonWrite(learner, tutor);
-        await queueMatchEmails(learner.id, tutor.id);
-        notify(`Connected ${learner.name} to ${tutor.name}.`);
+        const delivery = await connectPersonWrite(learner, tutor);
+        const summary = summariseDelivery(delivery);
+        notify(
+          `Connected ${firstName(learner.name)} to ${firstName(tutor.name)}. ${summary.text}`,
+          summary.tone,
+        );
         await refresh();
+        return delivery;
       } catch (error) {
         console.error("Failed to connect learner to tutor", error);
-        notify("Database update failed. Please retry.", "error");
+        notify(
+          error instanceof Error ? error.message : "Could not connect them. Please retry.",
+          "error",
+        );
         throw error;
       } finally {
         clearPatch(learner.id);
       }
     },
     [applyPatch, clearPatch, notify, refresh],
+  );
+
+  const sendIntroduction = useCallback(
+    async (learner: Person) => {
+      try {
+        const delivery = await sendIntroductionWrite(learner.id);
+        const summary = summariseDelivery(delivery);
+        notify(summary.text, summary.tone);
+        await refresh();
+        return delivery;
+      } catch (error) {
+        console.error("Failed to send the introduction", error);
+        notify(
+          error instanceof Error ? error.message : "Could not send the introduction.",
+          "error",
+        );
+        throw error;
+      }
+    },
+    [notify, refresh],
   );
 
   const confirmRemoval = useCallback(
@@ -298,6 +373,8 @@ export function RegistryProvider({ children }: { children: ReactNode }) {
       toggleMailed,
       setConnected,
       connectToTutor,
+      sendIntroduction,
+      mailer,
       confirmRemoval,
     }),
     [
@@ -320,6 +397,8 @@ export function RegistryProvider({ children }: { children: ReactNode }) {
       toggleMailed,
       setConnected,
       connectToTutor,
+      sendIntroduction,
+      mailer,
       confirmRemoval,
     ],
   );

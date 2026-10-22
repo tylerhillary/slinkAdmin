@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { adminDb } from "@/lib/firebase/admin";
 import { errorResponse, requireAdmin } from "@/lib/server/guard";
+import { mailerConfigured, senderAddress } from "@/lib/server/mailer";
 import { serialise } from "@/lib/server/serialise";
 
 /**
@@ -33,6 +34,8 @@ export async function GET(request: Request) {
         registrations: registrations.docs.map(serialise),
         submissions: submissions.docs.map(serialise),
         fetchedAt: new Date().toISOString(),
+        // Whether Connect will send on its own or hand the desk drafts.
+        mailer: { configured: mailerConfigured(), from: senderAddress() },
       },
       { headers: { "cache-control": "no-store" } },
     );

@@ -3,6 +3,8 @@
 import {
   BadgeCheck,
   CalendarDays,
+  CheckCircle2,
+  ExternalLink,
   FileText,
   AlertTriangle,
   History,
@@ -14,6 +16,7 @@ import {
   Send,
   Trash2,
   Undo2,
+  XCircle,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
@@ -30,7 +33,12 @@ import {
   fetchTutorship,
   type TutorshipView,
 } from "@/lib/firebase/tutorship";
-import type { Person } from "@/types";
+import type {
+  IntroductionDelivery,
+  IntroductionMessage,
+  MailerStatus,
+  Person,
+} from "@/types";
 
 /**
  * Record detail panel.
@@ -39,13 +47,25 @@ import type { Person } from "@/types";
  * provider so the mutation path stays identical to the rest of the console.
  */
 export function PersonDrawer() {
-  const { selectedPerson, selectPerson, people, connectToTutor, setConnected, requestRemoval } =
-    useRegistry();
+  const {
+    selectedPerson,
+    selectPerson,
+    people,
+    connectToTutor,
+    sendIntroduction,
+    mailer,
+    setConnected,
+    requestRemoval,
+  } = useRegistry();
 
 
   const [selectedTutorId, setSelectedTutorId] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [reverting, setReverting] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  /** The outcome of the last connect or send in this panel, per recipient. */
+  const [delivery, setDelivery] = useState<IntroductionDelivery | null>(null);
 
   /**
    * Whether an introduction to this pair would actually reach them.
@@ -76,19 +96,29 @@ export function PersonDrawer() {
   );
 
   // The already-connected tutor is pre-selected when the panel opens.
+  //
+  // Keyed on the fields that matter, not the record object: the queue
+  // re-fetches every 15 seconds and hands back new objects each time, and
+  // keying on identity cleared the desk's tutor choice mid-decision.
+  const personId = selectedPerson?.id ?? null;
+  const personStatus = selectedPerson?.status ?? null;
+  const personTutorId = selectedPerson?.connectedTutorId ?? "";
+
   useEffect(() => {
-    if (!selectedPerson) {
+    if (!personId) {
       setSelectedTutorId(null);
       return;
     }
-    setSelectedTutorId(
-      selectedPerson.status === "connected" && selectedPerson.connectedTutorId
-        ? selectedPerson.connectedTutorId
-        : null,
-    );
+    setSelectedTutorId(personStatus === "connected" && personTutorId ? personTutorId : null);
     setConnecting(false);
     setReverting(false);
-  }, [selectedPerson]);
+  }, [personId, personStatus, personTutorId]);
+
+  // A delivery report belongs to the record it was made for.
+  useEffect(() => {
+    setDelivery(null);
+    setSending(false);
+  }, [personId]);
 
   // Re-asked whenever either side of the pair changes, because a member can
   // add or withdraw a channel between one connect and the next.
@@ -144,18 +174,44 @@ export function PersonDrawer() {
       : null);
 
   const connectTarget = people.find((candidate) => candidate.id === selectedTutorId) ?? null;
+  // Re-connecting the tutor already on record would only re-send the emails.
+  const alreadyConnectedToTarget =
+    isConnected && connectTarget !== null && connectTarget.id === person.connectedTutorId;
   const assessmentMailto = buildAssessmentMailto(person);
   const testScore = formatScore(person.skillTest.score ?? person.skillTest.rating);
 
+  const revealIntroduction = (): void => {
+    requestAnimationFrame(() => {
+      document
+        .getElementById(INTRODUCTION_SECTION_ID)
+        ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  };
+
   const handleConnect = async (): Promise<void> => {
-    if (!connectTarget) return;
+    if (!connectTarget || alreadyConnectedToTarget) return;
     setConnecting(true);
     try {
-      await connectToTutor(person, connectTarget);
-      selectPerson(null);
+      // The panel stays open: what happened to each email is shown below,
+      // where the desk can open a draft or retry a failure without hunting.
+      setDelivery(await connectToTutor(person, connectTarget));
+      revealIntroduction();
     } catch {
-      // The provider already surfaced a toast; keep the panel open to retry.
+      // The provider already surfaced a toast; the panel stays open to retry.
+    } finally {
       setConnecting(false);
+    }
+  };
+
+  const handleSendIntroduction = async (): Promise<void> => {
+    setSending(true);
+    try {
+      setDelivery(await sendIntroduction(person));
+      revealIntroduction();
+    } catch {
+      // Toast already shown.
+    } finally {
+      setSending(false);
     }
   };
 
@@ -228,27 +284,34 @@ export function PersonDrawer() {
       }
       footer={
         <div className="flex flex-col gap-3">
-          <ReachWarning
-            learner={person}
-            tutor={connectTarget}
-            reach={reach}
-          />
+          {alreadyConnectedToTarget ? null : (
+            <IntroductionPreview
+              learner={person}
+              tutor={connectTarget}
+              reach={reach}
+              mailer={mailer}
+            />
+          )}
 
           <div className="flex flex-col gap-2 sm:flex-row">
           <Button
             variant="primary"
             size="lg"
             className="flex-1 justify-center"
-            disabled={!connectTarget || connecting}
+            disabled={!connectTarget || connecting || alreadyConnectedToTarget}
             loading={connecting}
             onClick={() => void handleConnect()}
             leading={<Link2 className="h-4 w-4" aria-hidden />}
           >
             {connecting
               ? "Connecting…"
-              : connectTarget
-                ? `Connect to ${firstName(connectTarget.name)}`
-                : "Select a tutor to connect"}
+              : alreadyConnectedToTarget
+                ? `Connected to ${firstName(connectTarget.name)}`
+                : connectTarget
+                  ? isConnected
+                    ? `Switch to ${firstName(connectTarget.name)}`
+                    : `Connect to ${firstName(connectTarget.name)}`
+                  : "Select a tutor to connect"}
           </Button>
 
           {isConnected ? (
@@ -418,10 +481,22 @@ export function PersonDrawer() {
                   ? person.connectedAtLabel
                     ? `Connected on ${person.connectedAtLabel}.`
                     : "This learner is currently connected to this tutor."
-                  : "Connecting opens the announcement email and queues notifications for both parties."}
+                  : mailer?.configured
+                    ? `Connecting emails both of them an introduction from ${mailer.from}.`
+                    : "Connecting prepares both introduction emails as Gmail drafts."}
               </p>
             </div>
           </Section>
+        ) : null}
+
+        {isConnected ? (
+          <IntroductionSection
+            person={person}
+            delivery={delivery}
+            mailer={mailer}
+            sending={sending}
+            onSend={() => void handleSendIntroduction()}
+          />
         ) : null}
 
         <TutorshipSection tutorship={tutorship} />
@@ -585,93 +660,217 @@ function Muted() {
   return <span className="text-content-subtle">—</span>;
 }
 
+/** Scrolled into view after a connect or send, so the outcome is never off-screen. */
+const INTRODUCTION_SECTION_ID = "person-drawer-introduction";
+
 /**
- * Whether this introduction would actually reach the two people in it.
+ * What an introduction for this pair will hand over, said before it happens.
  *
- * ## Why this is a warning and not a block
+ * Members who joined on the website give the other side their first name,
+ * email and state. Members with the app give only the channels they chose
+ * there — and an app member who chose none is the one case worth a warning:
+ * the other person will learn who they were matched with and be handed no way
+ * to reach them.
  *
- * An email that says "you have been matched" and carries no way to contact the
- * other person is worse than no email: it raises an expectation the product
- * cannot meet, to two people at once. So the desk is told before it happens.
- *
- * It does not stop them. A desk that knows the person and is about to ring
- * them anyway has a reason the console cannot see, and a console that refuses
- * to let a human do their job gets worked around rather than heeded.
- *
- * ## The two things it distinguishes
- *
- * **No account** is not a fault — 38 of 40 registrations came from the website
- * and their owners have never opened the app. It means the email is all they
- * will get: no match card, no venue, nothing to accept.
- *
- * **An account with no channels** is the one worth pausing on. They installed
- * the app and chose to share nothing, so there is nothing to put in the
- * introduction, and the other person will be told they have been matched with
- * somebody unreachable.
+ * A note, never a block. A desk that knows the person and is about to ring
+ * them has a reason the console cannot see.
  */
-function ReachWarning({
+function IntroductionPreview({
   learner,
   tutor,
   reach,
+  mailer,
 }: {
   learner: Person;
   tutor: Person | null;
   reach: Record<string, Reach>;
+  mailer: MailerStatus | null;
 }): ReactNode {
   if (!tutor) return null;
 
   const sides = [
-    { who: firstName(learner.name) || "This learner", state: reach[learner.id] },
-    { who: firstName(tutor.name) || "This tutor", state: reach[tutor.id] },
+    { who: firstName(learner.name), state: reach[learner.id] },
+    { who: firstName(tutor.name), state: reach[tutor.id] },
   ];
 
-  // Silent until the answer is in. Advice that flickers into view is worse
+  // Warnings wait for the answer; advice that flickers into view is worse
   // than advice that arrives a moment late.
-  if (sides.some((side) => side.state === undefined)) return null;
-
-  const unreachable = sides.filter(
-    (side) => side.state!.hasAccount && side.state!.channels === 0,
+  const silent = sides.filter(
+    (side) => side.state !== undefined && side.state.hasAccount && side.state.channels === 0,
   );
-  const appless = sides.filter((side) => !side.state!.hasAccount);
 
-  if (unreachable.length === 0 && appless.length === 0) return null;
-
-  const lines: string[] = [];
-  for (const side of unreachable) {
-    lines.push(
-      `${side.who} has the app but has not chosen any way to be reached, so the introduction will carry nothing for them.`,
-    );
-  }
-  if (appless.length > 0) {
-    lines.push(
-      `${appless.map((side) => side.who).join(" and ")} ${
-        appless.length === 1 ? "has" : "have"
-      } not opened the app, so the email is all ${
-        appless.length === 1 ? "they get" : "they get"
-      } — no venue to agree, nothing to accept.`,
-    );
-  }
-
-  const severe = unreachable.length > 0;
+  const how = mailer?.configured
+    ? `Connecting emails both of them from ${mailer.from}.`
+    : "Connecting prepares both introduction emails as Gmail drafts for you to send.";
 
   return (
-    <div
-      role="status"
-      className={`flex gap-2 rounded-lg border p-3 text-sm ${
-        severe
-          ? "border-amber-500/40 bg-amber-500/10 text-amber-100"
-          : "border-white/10 bg-white/5 text-white/70"
-      }`}
-    >
-      <AlertTriangle
-        className={`mt-0.5 h-4 w-4 shrink-0 ${severe ? "text-amber-400" : "text-white/40"}`}
-        aria-hidden
-      />
-      <div className="flex flex-col gap-1">
-        {lines.map((line) => (
-          <p key={line}>{line}</p>
-        ))}
-      </div>
+    <div className="space-y-2">
+      {silent.map((side) => (
+        <div
+          key={side.who}
+          role="status"
+          className="flex gap-2 rounded-lg border border-warning/30 bg-warning-soft p-3 text-xs text-warning"
+        >
+          <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
+          <p>
+            {side.who} uses the app but has not chosen any way to be reached, so the other
+            person&apos;s introduction will carry no contact details for them.
+          </p>
+        </div>
+      ))}
+      <p className="flex items-start gap-1.5 text-2xs leading-relaxed text-content-muted">
+        <Send className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
+        <span>
+          {how} Each gets the other&apos;s first name and state, plus their email, or the
+          channels they chose if they use the app. Phone numbers stay with the desk.
+        </span>
+      </p>
     </div>
+  );
+}
+
+const RECIPIENT_LABELS: Record<IntroductionMessage["recipient"], string> = {
+  learner: "Learner",
+  tutor: "Tutor",
+};
+
+function MessageIcon({ status }: { status: IntroductionMessage["status"] }) {
+  if (status === "sent") {
+    return <CheckCircle2 className="h-4 w-4 shrink-0 text-success" aria-label="Sent" />;
+  }
+  if (status === "draft") {
+    return <Mail className="h-4 w-4 shrink-0 text-content-subtle" aria-label="Draft" />;
+  }
+  return <XCircle className="h-4 w-4 shrink-0 text-danger" aria-label="Not sent" />;
+}
+
+/**
+ * Whether this connection has been announced, and the controls to do it.
+ *
+ * The record on the registration says what happened last time, across
+ * sessions and devices. The delivery report, when there is one, says exactly
+ * what happened just now, per person, with a Gmail draft wherever the desk
+ * still has a click to make.
+ */
+function IntroductionSection({
+  person,
+  delivery,
+  mailer,
+  sending,
+  onSend,
+}: {
+  person: Person;
+  delivery: IntroductionDelivery | null;
+  mailer: MailerStatus | null;
+  sending: boolean;
+  onSend: () => void;
+}): ReactNode {
+  // An introduction made for a previous tutor says nothing about this one.
+  const record =
+    person.introduction && person.introduction.tutorId === person.connectedTutorId
+      ? person.introduction
+      : null;
+  const when = record?.atLabel ? ` on ${record.atLabel}` : "";
+
+  const summary = record
+    ? {
+        sent: `Introduction emailed to both${when}.`,
+        partial: `Only part of the introduction was delivered${when}.`,
+        failed: `The introduction could not be sent${when}.`,
+        draft: `Drafts were prepared${when}. The console cannot tell whether they were sent.`,
+      }[record.status]
+    : "No introduction has gone out for this connection yet.";
+  const settled = record?.status === "sent";
+
+  const automatic = Boolean(mailer?.configured);
+  const actionLabel = sending
+    ? automatic
+      ? "Sending…"
+      : "Preparing…"
+    : !automatic
+      ? "Prepare drafts"
+      : settled
+        ? "Send again"
+        : "Send introduction";
+
+  return (
+    <section id={INTRODUCTION_SECTION_ID} className="scroll-mt-4">
+      <div className="mb-2.5 flex items-center justify-between gap-3">
+        <h3 className="text-2xs font-semibold uppercase tracking-widest text-content-subtle">
+          Introduction email
+        </h3>
+      </div>
+
+      <div className="space-y-3 rounded-lg border border-line p-3">
+        <div className="flex items-start justify-between gap-3">
+          <p
+            className={`flex items-start gap-1.5 text-xs ${
+              settled ? "text-content-muted" : "text-warning"
+            }`}
+          >
+            {settled ? (
+              <CheckCircle2 className="mt-px h-3.5 w-3.5 shrink-0 text-success" aria-hidden />
+            ) : (
+              <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
+            )}
+            {summary}
+          </p>
+          <Button
+            variant={settled ? "secondary" : "primary"}
+            size="sm"
+            onClick={onSend}
+            disabled={sending}
+            loading={sending}
+            leading={<Send className="h-3.5 w-3.5" aria-hidden />}
+            className="shrink-0"
+          >
+            {actionLabel}
+          </Button>
+        </div>
+
+        {delivery && delivery.messages.length > 0 ? (
+          <ul className="divide-y divide-line rounded-md border border-line">
+            {delivery.messages.map((message) => (
+              <li key={message.recipient} className="flex items-center gap-2.5 px-3 py-2.5">
+                <MessageIcon status={message.status} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-content">
+                    {RECIPIENT_LABELS[message.recipient]} · {message.name}
+                  </p>
+                  <p className="truncate text-2xs text-content-subtle">
+                    {message.status === "no-email"
+                      ? "No email address on file"
+                      : message.status === "sent"
+                        ? `Sent to ${message.to}`
+                        : message.status === "failed"
+                          ? message.error ?? "Not sent"
+                          : message.to}
+                  </p>
+                </div>
+                {message.composeUrl ? (
+                  <a
+                    href={message.composeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex shrink-0 items-center gap-1 rounded border border-line px-2 py-1 text-2xs font-medium text-content transition-colors duration-150 hover:border-line-strong hover:bg-surface-subtle"
+                  >
+                    Open in Gmail
+                    <ExternalLink className="h-3 w-3" aria-hidden />
+                  </a>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        {automatic ? null : (
+          <p className="text-2xs leading-relaxed text-content-subtle">
+            Automatic sending is off. Add <code className="font-mono">GMAIL_APP_PASSWORD</code>{" "}
+            in Vercel to send straight from {mailer?.from ?? "the desk account"}; until then
+            each email opens as a finished Gmail draft.
+          </p>
+        )}
+      </div>
+    </section>
   );
 }

@@ -6,7 +6,7 @@ import { adaptPerson } from "@/lib/adapters/person";
 import { adaptSubmission } from "@/lib/adapters/submission";
 import type { DocData, DocumentLike } from "@/lib/adapters/coalesce";
 import { apiFetch } from "@/lib/firebase/api";
-import type { Person, RealtimeState, Submission } from "@/types";
+import type { MailerStatus, Person, RealtimeState, Submission } from "@/types";
 
 /**
  * The dashboard's data, fetched from this project's own server.
@@ -38,12 +38,15 @@ interface RegistryFeed {
   refresh: () => Promise<void>;
   /** When the data on screen was last confirmed against the server. */
   fetchedAt: Date | null;
+  /** Whether Connect sends mail itself or hands the desk drafts. Null until the first load. */
+  mailer: MailerStatus | null;
 }
 
 interface Payload {
   registrations: { id: string; data: DocData }[];
   submissions: { id: string; data: DocData }[];
   fetchedAt: string;
+  mailer?: MailerStatus;
 }
 
 /** Wraps a JSON document so the existing adapters can read it unchanged. */
@@ -64,6 +67,7 @@ export function useRegistryFeed(): RegistryFeed {
     error: null,
   });
   const [fetchedAt, setFetchedAt] = useState<Date | null>(null);
+  const [mailer, setMailer] = useState<MailerStatus | null>(null);
 
   // Guards against two fetches overlapping — a poll landing while a
   // write-triggered refresh is still in flight would otherwise let the older
@@ -97,6 +101,7 @@ export function useRegistryFeed(): RegistryFeed {
         error: null,
       });
       setFetchedAt(new Date(payload.fetchedAt));
+      setMailer(payload.mailer ?? null);
     } catch (cause) {
       const error = cause instanceof Error ? cause : new Error(String(cause));
       console.error("Registry fetch failed", error);
@@ -127,5 +132,5 @@ export function useRegistryFeed(): RegistryFeed {
     };
   }, [load]);
 
-  return { people, submissions, refresh: load, fetchedAt };
+  return { people, submissions, refresh: load, fetchedAt, mailer };
 }

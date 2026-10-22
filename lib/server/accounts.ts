@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { IntroductionReach } from "@/lib/domain/email";
 import { adminDb } from "@/lib/firebase/admin";
 
 /** One way to be reached that a member has agreed may be passed on. */
@@ -72,6 +73,23 @@ export async function consentedContacts(
   if (!uid) return [];
 
   return contactsForUid(uid);
+}
+
+/**
+ * Which sharing rule an introduction follows for this person.
+ *
+ * An account means they have been asked, in the app, what may be passed on —
+ * so only that is used, even when the answer is nothing. No account means
+ * they joined on the website and were never asked; for them the introduction
+ * carries first name, email and state (see `IntroductionReach`).
+ */
+export async function introductionReach(
+  registrationId: string,
+  fallbackUid: unknown,
+): Promise<IntroductionReach> {
+  const uid = await resolveMemberUid(registrationId, fallbackUid);
+  if (!uid) return { kind: "registration" };
+  return { kind: "app", contacts: await contactsForUid(uid) };
 }
 
 async function contactsForUid(uid: string): Promise<ConsentedContact[]> {

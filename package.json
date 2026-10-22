@@ -18,12 +18,14 @@
     "firebase-admin": "^14.4.0",
     "lucide-react": "^0.475.0",
     "next": "^15.5.23",
+    "nodemailer": "^7.0.13",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@types/node": "^22.13.1",
+    "@types/nodemailer": "^7.0.12",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
     "autoprefixer": "^10.4.20",

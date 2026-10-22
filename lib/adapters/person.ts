@@ -6,7 +6,13 @@ import {
   toKeySet,
   type DateLike,
 } from "@/lib/domain/format";
-import type { Person, PersonStatus, SkillTestSnapshot } from "@/types";
+import type {
+  IntroductionRecord,
+  IntroductionStatus,
+  Person,
+  PersonStatus,
+  SkillTestSnapshot,
+} from "@/types";
 
 import { coalesce, spreadArray, type DocData, type DocumentLike } from "./coalesce";
 
@@ -29,6 +35,21 @@ function asDateLike(value: unknown): DateLike {
  * Field-name fallbacks are preserved verbatim from the previous dashboard so
  * that every document already in Firestore keeps resolving identically.
  */
+const INTRODUCTION_STATUSES: readonly IntroductionStatus[] = ["sent", "partial", "failed", "draft"];
+
+/** The `introduction` map written by the server when a connection is announced. */
+function readIntroduction(value: unknown): IntroductionRecord | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as { status?: unknown; tutorId?: unknown; at?: unknown };
+  if (!INTRODUCTION_STATUSES.includes(record.status as IntroductionStatus)) return null;
+
+  return {
+    status: record.status as IntroductionStatus,
+    tutorId: readString(record.tutorId),
+    atLabel: formatDateLabel(asDateLike(record.at)),
+  };
+}
+
 export function adaptPerson(snapshot: DocumentLike): Person {
   const data = (snapshot.data() ?? {}) as DocData;
 
@@ -234,5 +255,6 @@ export function adaptPerson(snapshot: DocumentLike): Person {
     connectedAtValue: toEpochMillis(asDateLike(data.connectedAt)),
     consent: typeof data.consent === "boolean" ? data.consent : null,
     source: readString(data.source),
+    introduction: readIntroduction(data.introduction),
   };
 }

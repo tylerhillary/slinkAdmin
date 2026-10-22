@@ -94,6 +94,8 @@ export interface Person {
   connectedAtValue: number;
   consent: boolean | null;
   source: string;
+  /** Where the introduction email for the current connection stands, if one was attempted. */
+  introduction: IntroductionRecord | null;
 }
 
 /** A skill-test document from the `submissions` collection. */
@@ -113,6 +115,40 @@ export interface Submission {
 export interface TutorMatch {
   tutor: Person;
   overlapping: string[];
+}
+
+/** Overall outcome of an introduction, as recorded on the learner's registration. */
+export type IntroductionStatus = "sent" | "partial" | "failed" | "draft";
+
+export interface IntroductionRecord {
+  status: IntroductionStatus;
+  /** The tutor it introduced. Stale once the learner is matched with someone else. */
+  tutorId: string;
+  atLabel: string;
+}
+
+/** What happened to one of the two introduction emails. */
+export interface IntroductionMessage {
+  recipient: "learner" | "tutor";
+  /** First name, for display. */
+  name: string;
+  to: string;
+  status: "sent" | "failed" | "draft" | "no-email";
+  error?: string;
+  /** Pre-filled Gmail compose window, for a draft or a send that failed. */
+  composeUrl?: string;
+}
+
+export interface IntroductionDelivery {
+  /** `sent`: Gmail delivered it automatically. `draft`: no app password yet, so the desk presses Send. */
+  mode: "sent" | "draft";
+  messages: IntroductionMessage[];
+}
+
+/** Whether the server can send mail on its own, and as whom. */
+export interface MailerStatus {
+  configured: boolean;
+  from: string;
 }
 
 export type ToastTone = "success" | "warning" | "error";
