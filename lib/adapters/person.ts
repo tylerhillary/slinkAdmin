@@ -1,5 +1,3 @@
-import type { QueryDocumentSnapshot } from "firebase/firestore";
-
 import {
   formatDateLabel,
   parseNumeric,
@@ -10,7 +8,7 @@ import {
 } from "@/lib/domain/format";
 import type { Person, PersonStatus, SkillTestSnapshot } from "@/types";
 
-import { coalesce, spreadArray, type DocData } from "./coalesce";
+import { coalesce, spreadArray, type DocData, type DocumentLike } from "./coalesce";
 
 const CONNECTED_STATUSES = ["connected", "verified"] as const;
 const COMPLETED_TEST_STATUSES = ["completed", "passed", "ready", "finished"] as const;
@@ -31,7 +29,7 @@ function asDateLike(value: unknown): DateLike {
  * Field-name fallbacks are preserved verbatim from the previous dashboard so
  * that every document already in Firestore keeps resolving identically.
  */
-export function adaptPerson(snapshot: QueryDocumentSnapshot): Person {
+export function adaptPerson(snapshot: DocumentLike): Person {
   const data = (snapshot.data() ?? {}) as DocData;
 
   const rawStatus = String(data.status ?? "").toLowerCase();

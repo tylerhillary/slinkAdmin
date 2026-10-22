@@ -4,9 +4,12 @@ import {
   BadgeCheck,
   CalendarDays,
   FileText,
+  AlertTriangle,
+  History,
   Link2,
   Mail,
   MapPin,
+  ShieldCheck,
   Phone,
   Send,
   Trash2,
@@ -22,6 +25,11 @@ import { Drawer } from "@/components/ui/drawer";
 import { buildAssessmentMailto } from "@/lib/domain/email";
 import { firstName, formatScore } from "@/lib/domain/format";
 import { getTutorMatches } from "@/lib/domain/matching";
+import { fetchReach, type Reach } from "@/lib/firebase/reach";
+import {
+  fetchTutorship,
+  type TutorshipView,
+} from "@/lib/firebase/tutorship";
 import type { Person } from "@/types";
 
 /**
@@ -34,9 +42,33 @@ export function PersonDrawer() {
   const { selectedPerson, selectPerson, people, connectToTutor, setConnected, requestRemoval } =
     useRegistry();
 
+
   const [selectedTutorId, setSelectedTutorId] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [reverting, setReverting] = useState(false);
+
+  /**
+   * Whether an introduction to this pair would actually reach them.
+   *
+   * Fetched rather than read: it depends on `users/{uid}/contacts`, which is
+   * owner-only, so this client cannot see it however hard it looks. `{}` while
+   * it is in flight, which renders as no warning — advice that flickers into
+   * view is worse than advice that arrives a moment late.
+   */
+  const [reach, setReach] = useState<Record<string, Reach>>({});
+
+  /**
+   * The safety record, and how it got that way.
+   *
+   * Fetched for the same reason as the reach: `tutorships` is readable by
+   * its two members and this console is neither, and `venueAudit` is closed
+   * to every client there is. The Admin SDK is the only reader of either,
+   * which makes this drawer the only place the desk can ever see them.
+   */
+  const [tutorship, setTutorship] = useState<TutorshipView>({
+    venue: null,
+    audit: [],
+  });
 
   const matches = useMemo(
     () => (selectedPerson ? getTutorMatches(selectedPerson, people) : []),
@@ -57,6 +89,42 @@ export function PersonDrawer() {
     setConnecting(false);
     setReverting(false);
   }, [selectedPerson]);
+
+  // Re-asked whenever either side of the pair changes, because a member can
+  // add or withdraw a channel between one connect and the next.
+  useEffect(() => {
+    const ids = [selectedPerson?.id, selectedTutorId].filter(
+      (id): id is string => typeof id === "string" && id.length > 0,
+    );
+    if (ids.length === 0) {
+      setReach({});
+      return;
+    }
+
+    let cancelled = false;
+    void fetchReach(ids).then((result) => {
+      if (!cancelled) setReach(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPerson?.id, selectedTutorId]);
+
+  useEffect(() => {
+    const id = selectedPerson?.id;
+    if (!id) {
+      setTutorship({ venue: null, audit: [] });
+      return;
+    }
+
+    let cancelled = false;
+    void fetchTutorship(id).then((result) => {
+      if (!cancelled) setTutorship(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPerson?.id]);
 
   if (!selectedPerson) return null;
 
@@ -159,7 +227,14 @@ export function PersonDrawer() {
         </div>
       }
       footer={
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-col gap-3">
+          <ReachWarning
+            learner={person}
+            tutor={connectTarget}
+            reach={reach}
+          />
+
+          <div className="flex flex-col gap-2 sm:flex-row">
           <Button
             variant="primary"
             size="lg"
@@ -199,6 +274,7 @@ export function PersonDrawer() {
               Delete
             </Button>
           )}
+          </div>
         </div>
       }
     >
@@ -347,10 +423,123 @@ export function PersonDrawer() {
             </div>
           </Section>
         ) : null}
+
+        <TutorshipSection tutorship={tutorship} />
       </div>
     </Drawer>
   );
 }
+
+/**
+ * Where this tutorship is happening, and every hand that moved it.
+ *
+ * ## Why the desk sees this at all
+ *
+ * It is the one thing about a conversation that Slink360 keeps centrally, and
+ * it is kept for exactly this: a trainee is about to travel to an address given
+ * to them by somebody they met through us. A record only the two of them could
+ * read would not be a safety record — it would be a note they passed to each
+ * other.
+ *
+ * ## Why the log is separate from the venue
+ *
+ * `tutorships/{matchId}` is current state: re-filing a venue merges over it and
+ * the previous address is gone. The question a safety review asks is not "where
+ * is this tutorship" but "where has it been, and who moved it". `venueAudit`
+ * answers that, and it is append-only by rule — `update` and `delete` are
+ * refused for everybody, so nothing here can be tidied up after the fact.
+ */
+function TutorshipSection({ tutorship }: { tutorship: TutorshipView }): ReactNode {
+  const { venue, audit } = tutorship;
+  if (!venue) return null;
+
+  const settled = venue.status === "confirmed";
+  const refused = venue.status === "rejected";
+
+  const place =
+    venue.mode === "online"
+      ? [venue.platform || "Online", venue.joinDetail].filter(Boolean).join(" · ")
+      : [venue.landmark || venue.addressLine, venue.city, venue.venueState]
+          .filter(Boolean)
+          .join(", ");
+
+  return (
+    <Section title="Tutorship location">
+      <div
+        className={`rounded-lg border p-3 ${
+          settled
+            ? "border-emerald-500/35 bg-emerald-500/10"
+            : refused
+              ? "border-rose-500/35 bg-rose-500/10"
+              : "border-white/10 bg-white/5"
+        }`}
+      >
+        <p className="flex items-start gap-1.5 text-sm font-medium text-content">
+          <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+          {place || "Filed with no address"}
+        </p>
+
+        <dl className="mt-2.5 space-y-1.5 text-xs">
+          <MiniRow label="Status">
+            {settled
+              ? "Agreed — the trainee said they can get there"
+              : refused
+                ? "Turned down by the trainee"
+                : "Filed, waiting on the trainee"}
+          </MiniRow>
+          <MiniRow label="Mode">
+            {venue.mode === "online" ? "Online" : "In person"}
+          </MiniRow>
+          {venue.skill ? <MiniRow label="Skill">{venue.skill}</MiniRow> : null}
+          <MiniRow label="Trainee is in">
+            {venue.traineeState || "Not recorded"}
+          </MiniRow>
+        </dl>
+
+        {/* The one comparison worth making by eye. An in-person tutorship is
+            only supposed to run inside one state, and this is the record that
+            would show it had not. */}
+        {venue.mode !== "online" &&
+        venue.traineeState &&
+        venue.venueState &&
+        venue.traineeState.toLowerCase() !== venue.venueState.toLowerCase() ? (
+          <p className="mt-3 flex items-start gap-1.5 text-2xs text-amber-200">
+            <AlertTriangle className="mt-px h-3 w-3 shrink-0" aria-hidden />
+            This venue is in {venue.venueState} and the trainee is recorded in{" "}
+            {venue.traineeState}. In-person tutorships are meant to stay inside
+            one state.
+          </p>
+        ) : null}
+      </div>
+
+      {audit.length > 0 ? (
+        <div className="mt-3">
+          <p className="mb-1.5 flex items-center gap-1.5 text-2xs uppercase tracking-wide text-content-muted">
+            <History className="h-3 w-3" aria-hidden />
+            History
+          </p>
+          <ol className="space-y-1 text-xs text-content-muted">
+            {audit.map((entry, index) => (
+              <li key={`${entry.at ?? index}-${entry.outcome}`}>
+                <span className="text-content">{AUDIT_LABELS[entry.outcome] ?? entry.outcome}</span>
+                {entry.venueState ? ` · ${entry.venueState}` : ""}
+                {entry.at ? ` · ${new Date(entry.at).toLocaleString()}` : ""}
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
+    </Section>
+  );
+}
+
+const AUDIT_LABELS: Record<string, string> = {
+  filed: "Venue filed",
+  refiled: "Venue changed",
+  confirmed: "Trainee agreed",
+  rejected: "Trainee turned it down",
+  contactsShared: "Details released",
+};
 
 function Section({
   title,
@@ -394,4 +583,95 @@ function MiniRow({ label, children }: { label: string; children: ReactNode }) {
 
 function Muted() {
   return <span className="text-content-subtle">—</span>;
+}
+
+/**
+ * Whether this introduction would actually reach the two people in it.
+ *
+ * ## Why this is a warning and not a block
+ *
+ * An email that says "you have been matched" and carries no way to contact the
+ * other person is worse than no email: it raises an expectation the product
+ * cannot meet, to two people at once. So the desk is told before it happens.
+ *
+ * It does not stop them. A desk that knows the person and is about to ring
+ * them anyway has a reason the console cannot see, and a console that refuses
+ * to let a human do their job gets worked around rather than heeded.
+ *
+ * ## The two things it distinguishes
+ *
+ * **No account** is not a fault — 38 of 40 registrations came from the website
+ * and their owners have never opened the app. It means the email is all they
+ * will get: no match card, no venue, nothing to accept.
+ *
+ * **An account with no channels** is the one worth pausing on. They installed
+ * the app and chose to share nothing, so there is nothing to put in the
+ * introduction, and the other person will be told they have been matched with
+ * somebody unreachable.
+ */
+function ReachWarning({
+  learner,
+  tutor,
+  reach,
+}: {
+  learner: Person;
+  tutor: Person | null;
+  reach: Record<string, Reach>;
+}): ReactNode {
+  if (!tutor) return null;
+
+  const sides = [
+    { who: firstName(learner.name) || "This learner", state: reach[learner.id] },
+    { who: firstName(tutor.name) || "This tutor", state: reach[tutor.id] },
+  ];
+
+  // Silent until the answer is in. Advice that flickers into view is worse
+  // than advice that arrives a moment late.
+  if (sides.some((side) => side.state === undefined)) return null;
+
+  const unreachable = sides.filter(
+    (side) => side.state!.hasAccount && side.state!.channels === 0,
+  );
+  const appless = sides.filter((side) => !side.state!.hasAccount);
+
+  if (unreachable.length === 0 && appless.length === 0) return null;
+
+  const lines: string[] = [];
+  for (const side of unreachable) {
+    lines.push(
+      `${side.who} has the app but has not chosen any way to be reached, so the introduction will carry nothing for them.`,
+    );
+  }
+  if (appless.length > 0) {
+    lines.push(
+      `${appless.map((side) => side.who).join(" and ")} ${
+        appless.length === 1 ? "has" : "have"
+      } not opened the app, so the email is all ${
+        appless.length === 1 ? "they get" : "they get"
+      } — no venue to agree, nothing to accept.`,
+    );
+  }
+
+  const severe = unreachable.length > 0;
+
+  return (
+    <div
+      role="status"
+      className={`flex gap-2 rounded-lg border p-3 text-sm ${
+        severe
+          ? "border-amber-500/40 bg-amber-500/10 text-amber-100"
+          : "border-white/10 bg-white/5 text-white/70"
+      }`}
+    >
+      <AlertTriangle
+        className={`mt-0.5 h-4 w-4 shrink-0 ${severe ? "text-amber-400" : "text-white/40"}`}
+        aria-hidden
+      />
+      <div className="flex flex-col gap-1">
+        {lines.map((line) => (
+          <p key={line}>{line}</p>
+        ))}
+      </div>
+    </div>
+  );
 }

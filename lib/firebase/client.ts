@@ -1,35 +1,42 @@
 "use client";
 
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
-import { collection, getFirestore, type CollectionReference, type Firestore } from "firebase/firestore";
+import { getAuth, type Auth } from "firebase/auth";
 
-import { COLLECTIONS, firebaseConfig } from "./config";
+import { firebaseConfig } from "./config";
 
 /**
  * Browser-side Firebase singleton.
  *
  * Next.js Fast Refresh and React Strict Mode both re-execute module bodies, so
  * the app instance is looked up before being created.
+ *
+ * Note what is no longer here: Firestore. The console used to hold collection
+ * references to `registrations`, `submissions` and `mailQueue` and read them
+ * straight from the browser, which only worked while those collections were
+ * readable by anyone on the internet. They are not, and should not be — the
+ * documents hold full names, emails, phone numbers and ages.
+ *
+ * All data now goes through this project's own guarded API routes, which read
+ * with the Admin SDK on the server. The only Firebase the browser still
+ * touches is Auth, to prove who is asking, and Analytics.
  */
 function getFirebaseApp(): FirebaseApp {
   return getApps().length ? getApp() : initializeApp(firebaseConfig);
 }
 
 export const firebaseApp: FirebaseApp = getFirebaseApp();
-export const db: Firestore = getFirestore(firebaseApp);
 
-export const registrationsRef: CollectionReference = collection(
-  db,
-  COLLECTIONS.registrations,
-);
-export const submissionsRef: CollectionReference = collection(
-  db,
-  COLLECTIONS.submissions,
-);
-export const mailQueueRef: CollectionReference = collection(
-  db,
-  COLLECTIONS.mailQueue,
-);
+/**
+ * The browser's Auth instance — who is asking.
+ *
+ * A getter rather than a module-level constant: this module is also evaluated
+ * while client components render on the server, and Auth has nothing to do
+ * there. `getAuth` returns the same instance on every call.
+ */
+export function firebaseAuth(): Auth {
+  return getAuth(firebaseApp);
+}
 
 /**
  * Analytics is optional: it fails in unsupported browsers and in any

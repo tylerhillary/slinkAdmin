@@ -1,8 +1,9 @@
 "use client";
 
-import { PanelLeftClose, PanelLeftOpen, ShieldCheck } from "lucide-react";
+import { LogOut, PanelLeftClose, PanelLeftOpen, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 
+import { useSession } from "@/components/providers/auth-gate";
 import { useRegistry } from "@/components/providers/registry-provider";
 import { CountPill } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ export function Sidebar({
   onCloseMobile,
 }: SidebarProps) {
   const { activeFilter, setActiveFilter, counts } = useRegistry();
+  const { user, signOut } = useSession();
 
   return (
     <>
@@ -149,9 +151,25 @@ export function Sidebar({
             </span>
             {!collapsed ? (
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-medium text-content">Admin User</p>
-                <p className="truncate text-2xs text-content-subtle">Full access</p>
+                <p className="truncate text-xs font-medium text-content">
+                  {user.displayName ?? user.email ?? "Administrator"}
+                </p>
+                <p className="truncate text-2xs text-content-subtle">
+                  {user.displayName ? user.email : "Administrator"}
+                </p>
               </div>
+            ) : null}
+            {!collapsed ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => void signOut()}
+                aria-label="Sign out"
+                title="Sign out"
+                className="h-7 w-7 shrink-0"
+              >
+                <LogOut className="h-3.5 w-3.5" aria-hidden />
+              </Button>
             ) : null}
           </div>
 

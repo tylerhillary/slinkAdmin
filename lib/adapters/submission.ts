@@ -1,9 +1,7 @@
-import type { QueryDocumentSnapshot } from "firebase/firestore";
-
 import { firstBoolean, firstFinite, toKeySet } from "@/lib/domain/format";
 import type { Submission } from "@/types";
 
-import { spreadArray, type DocData } from "./coalesce";
+import { spreadArray, type DocData, type DocumentLike } from "./coalesce";
 
 /**
  * Normalises a `submissions` document.
@@ -11,7 +9,7 @@ import { spreadArray, type DocData } from "./coalesce";
  * The collection has accumulated several generations of field names; every
  * historical spelling is still read here so no existing record stops resolving.
  */
-export function adaptSubmission(snapshot: QueryDocumentSnapshot): Submission {
+export function adaptSubmission(snapshot: DocumentLike): Submission {
   const data = (snapshot.data() ?? {}) as DocData;
 
   const score = firstFinite([

@@ -64,8 +64,14 @@ export function buildAssessmentMailto(person: Person): string {
 }
 
 /** Match announcement opened in the admin's mail client on connect. */
-export function buildConnectionMailto(learner: Person, tutor: Person): string {
+export function buildConnectionMailto(
+  learner: Person,
+  tutor: Person,
+  tutorContacts: ConsentedContact[],
+): string {
   if (!learner.email) return "";
+
+  const reach = contactBlock(tutorContacts, tutor.location || "");
 
   const body = [
     `Dear ${learner.name || "there"},`,
@@ -74,8 +80,10 @@ export function buildConnectionMailto(learner: Person, tutor: Person): string {
     "",
     "Your Assigned Tutor Details:",
     `Name: ${tutor.name}`,
-    `Email: ${tutor.email || "Not provided"}`,
-    `Phone: ${tutor.phone || "Not provided"}`,
+    // Only what the tutor agreed to hand over. When that is nothing, the desk
+    // is told so plainly rather than the draft quietly going out with a name
+    // and no way to act on it.
+    reach || "They have not yet chosen how they can be reached.",
     "",
     "Please contact your tutor directly to begin your skill acquisition sessions. They are expecting your message!",
     "",
@@ -89,14 +97,52 @@ export function buildConnectionMailto(learner: Person, tutor: Person): string {
   return mailto(learner.email, "We found a match for you! – Slink", body);
 }
 
-function contactBlock(person: Person): string {
-  return [
-    person.email ? `Email: ${person.email}` : null,
-    person.phone ? `Phone: ${person.phone}` : null,
-    person.location ? `Location: ${person.location}` : null,
-  ]
-    .filter((line): line is string => line !== null)
-    .join("\n");
+/**
+ * One way to be reached that a member has agreed may be passed on.
+ *
+ * Structural, not imported from `lib/server/accounts` — this module is shared
+ * with the browser bundle and that one is `server-only`. The shapes have to
+ * stay in step; `tsc` catches it if they drift, because the route passes one
+ * straight into the other.
+ */
+export interface ConsentedContact {
+  channel: string;
+  value: string;
+}
+
+const CHANNEL_LABELS: Record<string, string> = {
+  phone: "Phone",
+  whatsapp: "WhatsApp",
+  email: "Email",
+  telegram: "Telegram",
+  instagram: "Instagram",
+  linkedin: "LinkedIn",
+  other: "Also",
+};
+
+/**
+ * How to reach somebody, from what they agreed to hand over.
+ *
+ * This used to read `person.email` and `person.phone` — the fields on the
+ * registration. A registration holds a phone number because somebody typed it
+ * into a form, and that is not permission to give it to a stranger. The
+ * numbers here come from `users/{uid}/contacts`, which the member fills in
+ * themselves and can empty at any time, so a channel they never added cannot
+ * appear in an introduction.
+ *
+ * `location` stays: it comes from the registration and is not a contact
+ * detail. Two people meeting need to know roughly where the other one is.
+ */
+function contactBlock(contacts: ConsentedContact[], location: string): string {
+  const lines = contacts
+    .filter((contact) => contact.value.trim().length > 0)
+    .map(
+      (contact) =>
+        `${CHANNEL_LABELS[contact.channel] ?? "Contact"}: ${contact.value.trim()}`,
+    );
+
+  if (location) lines.push(`Location: ${location}`);
+  return lines.join("\n");
 }
 
 /**
@@ -106,6 +152,8 @@ function contactBlock(person: Person): string {
 export function buildMatchNotifications(
   learner: Person,
   tutor: Person,
+  learnerContacts: ConsentedContact[],
+  tutorContacts: ConsentedContact[],
 ): MailQueuePayload[] {
   const overlapping = overlappingSkills(learner, tutor);
   const skillSummary = overlapping.length
@@ -118,7 +166,7 @@ export function buildMatchNotifications(
   const payloads: MailQueuePayload[] = [];
 
   if (tutor.email) {
-    const tutorContact = contactBlock(learner);
+    const tutorContact = contactBlock(learnerContacts, learner.location || "");
     payloads.push({
       to: tutor.email,
       from: SENDER_EMAIL,
@@ -127,7 +175,7 @@ export function buildMatchNotifications(
         text: `Hi ${safeTutorName},\n\nYou have been matched with ${safeLearnerName} to teach ${
           skillSummary || "a new skill"
         }.\n\nLearner details:\n${
-          tutorContact || "We will follow up with more details soon."
+          tutorContact || "They have not yet chosen how they can be reached — we will follow up."
         }\n\nThank you for supporting the Slink community!`,
       },
       metadata: {
@@ -141,7 +189,7 @@ export function buildMatchNotifications(
   }
 
   if (learner.email) {
-    const learnerContact = contactBlock(tutor);
+    const learnerContact = contactBlock(tutorContacts, tutor.location || "");
     payloads.push({
       to: learner.email,
       from: SENDER_EMAIL,
@@ -150,7 +198,7 @@ export function buildMatchNotifications(
         text: `Hi ${safeLearnerName},\n\nGreat news! ${safeTutorName} is available to help you with ${
           skillSummary || "your goal"
         }.\n\nTutor details:\n${
-          learnerContact || "We will follow up with contact details shortly."
+          learnerContact || "They have not yet chosen how they can be reached — we will follow up."
         }\n\nKeep learning with Slink!`,
       },
       metadata: {

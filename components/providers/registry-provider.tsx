@@ -11,9 +11,7 @@ import {
 } from "react";
 
 import { useToast } from "@/components/providers/toast-provider";
-import { useCollection } from "@/hooks/use-collection";
-import { adaptPerson } from "@/lib/adapters/person";
-import { adaptSubmission } from "@/lib/adapters/submission";
+import { useRegistryFeed } from "@/hooks/use-registry-feed";
 import {
   countSegments,
   filterPeople,
@@ -21,7 +19,7 @@ import {
   searchPeople,
   sortByNewest,
 } from "@/lib/domain/registry";
-import { initAnalytics, registrationsRef, submissionsRef } from "@/lib/firebase/client";
+import { initAnalytics } from "@/lib/firebase/client";
 import {
   connectPerson as connectPersonWrite,
   queueMatchEmails,
@@ -45,6 +43,17 @@ interface RegistryContextValue {
   loading: boolean;
   error: Error | null;
 
+  /**
+   * When the data on screen was last confirmed against the server, and a way
+   * to confirm it now.
+   *
+   * Worth surfacing because this is a poll rather than a live subscription:
+   * "as of a moment ago" is a different claim from "live", and the console
+   * should be able to make the honest one.
+   */
+  fetchedAt: Date | null;
+  refresh: () => Promise<void>;
+
   activeFilter: FilterKey;
   setActiveFilter: (filter: FilterKey) => void;
   searchQuery: string;
@@ -67,8 +76,14 @@ const RegistryContext = createContext<RegistryContextValue | null>(null);
 export function RegistryProvider({ children }: { children: ReactNode }) {
   const { notify } = useToast();
 
-  const registrations = useCollection<Person>(registrationsRef, adaptPerson);
-  const submissions = useCollection<Submission>(submissionsRef, adaptSubmission);
+  // Reads come from this project's own server now, not from Firestore in the
+  // browser — see hooks/use-registry-feed.ts for why, and what that costs.
+  const {
+    people: registrations,
+    submissions,
+    refresh,
+    fetchedAt,
+  } = useRegistryFeed();
 
   const [activeFilter, setActiveFilterState] = useState<FilterKey>("registered");
   const [searchQuery, setSearchQuery] = useState("");
@@ -82,7 +97,10 @@ export function RegistryProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (registrations.error) {
-      notify("Realtime updates are unavailable. Showing the latest snapshot.", "warning");
+      notify(
+        `Could not refresh: ${registrations.error.message} Showing the last data received.`,
+        "warning",
+      );
     }
   }, [registrations.error, notify]);
 
@@ -186,6 +204,9 @@ export function RegistryProvider({ children }: { children: ReactNode }) {
             ? `${person.name} marked as mailed.`
             : `Mailed flag cleared for ${person.name}.`,
         );
+        // The optimistic patch is cleared below, so the row would snap back to
+        // its pre-write value until the next poll. Re-read first.
+        await refresh();
       } catch (error) {
         console.error("Failed to update mailed status", error);
         notify("Failed to update mailed status. Try again.", "error");
@@ -193,7 +214,7 @@ export function RegistryProvider({ children }: { children: ReactNode }) {
         clearPatch(person.id);
       }
     },
-    [applyPatch, clearPatch, notify],
+    [applyPatch, clearPatch, notify, refresh],
   );
 
   const setConnected = useCallback(
@@ -208,6 +229,7 @@ export function RegistryProvider({ children }: { children: ReactNode }) {
       try {
         await revertToPending(person.id);
         notify(`${person.name} moved back to pending.`);
+        await refresh();
       } catch (error) {
         console.error("Failed to revert status", error);
         notify("Could not move this learner back to pending.", "error");
@@ -215,7 +237,7 @@ export function RegistryProvider({ children }: { children: ReactNode }) {
         clearPatch(person.id);
       }
     },
-    [applyPatch, clearPatch, notify],
+    [applyPatch, clearPatch, notify, refresh],
   );
 
   const connectToTutor = useCallback(
@@ -223,8 +245,9 @@ export function RegistryProvider({ children }: { children: ReactNode }) {
       applyPatch(learner.id, { status: "connected" });
       try {
         await connectPersonWrite(learner, tutor);
-        await queueMatchEmails(learner, tutor);
+        await queueMatchEmails(learner.id, tutor.id);
         notify(`Connected ${learner.name} to ${tutor.name}.`);
+        await refresh();
       } catch (error) {
         console.error("Failed to connect learner to tutor", error);
         notify("Database update failed. Please retry.", "error");
@@ -233,7 +256,7 @@ export function RegistryProvider({ children }: { children: ReactNode }) {
         clearPatch(learner.id);
       }
     },
-    [applyPatch, clearPatch, notify],
+    [applyPatch, clearPatch, notify, refresh],
   );
 
   const confirmRemoval = useCallback(
@@ -243,13 +266,14 @@ export function RegistryProvider({ children }: { children: ReactNode }) {
         notify(`${person.name} has been deleted from the database.`, "warning");
         setPendingRemovalId(null);
         setSelectedPersonId((current) => (current === person.id ? null : current));
+        await refresh();
       } catch (error) {
         console.error("Failed to delete registration", error);
         notify("Deletion failed. Please try again.", "error");
         throw error;
       }
     },
-    [notify],
+    [notify, refresh],
   );
 
   const value = useMemo<RegistryContextValue>(
@@ -260,6 +284,8 @@ export function RegistryProvider({ children }: { children: ReactNode }) {
       counts,
       loading: registrations.loading,
       error: registrations.error,
+      fetchedAt,
+      refresh,
       activeFilter,
       setActiveFilter,
       searchQuery,
@@ -281,6 +307,8 @@ export function RegistryProvider({ children }: { children: ReactNode }) {
       counts,
       registrations.loading,
       registrations.error,
+      fetchedAt,
+      refresh,
       activeFilter,
       setActiveFilter,
       searchQuery,

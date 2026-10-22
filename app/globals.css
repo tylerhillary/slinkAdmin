@@ -183,3 +183,94 @@
     }
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Sign-in gate.
+
+   The one screen that renders before the app shell, so it cannot borrow the
+   shell's layout. Uses the same tokens as everything else, so it follows the
+   stored theme rather than flashing a second palette on the way in.
+   --------------------------------------------------------------------------- */
+@layer components {
+  .gate {
+    display: grid;
+    place-items: center;
+    min-height: 100dvh;
+    padding: 1.5rem;
+    background: hsl(var(--canvas));
+  }
+
+  .gate__card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    width: min(22rem, 100%);
+    padding: 1.75rem;
+    border: 1px solid hsl(var(--line));
+    border-radius: 0.875rem;
+    background: hsl(var(--surface-raised));
+    box-shadow: 0 1.5rem 3rem -1.5rem hsl(var(--shadow) / 0.35);
+  }
+
+  .gate__title {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 650;
+    color: hsl(var(--content));
+  }
+
+  .gate__muted {
+    margin: 0 0 0.75rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: hsl(var(--content-muted));
+  }
+
+  .gate__label {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: hsl(var(--content-muted));
+  }
+
+  .gate__input {
+    padding: 0.6rem 0.7rem;
+    border: 1px solid hsl(var(--line-strong));
+    border-radius: 0.5rem;
+    background: hsl(var(--surface));
+    color: hsl(var(--content));
+    font: inherit;
+  }
+
+  .gate__input:focus-visible {
+    outline: 2px solid hsl(var(--accent-ring));
+    outline-offset: 1px;
+  }
+
+  .gate__error {
+    margin: 0.6rem 0 0;
+    font-size: 0.8rem;
+    color: hsl(var(--danger));
+  }
+
+  .gate__button {
+    margin-top: 1rem;
+    padding: 0.6rem 0.9rem;
+    border: 0;
+    border-radius: 0.5rem;
+    background: hsl(var(--accent));
+    color: hsl(var(--content-inverted));
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .gate__button:hover:not(:disabled) {
+    background: hsl(var(--accent-hover));
+  }
+
+  .gate__button:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}

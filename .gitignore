@@ -10,3 +10,5 @@ next-env.d.ts
 
 # Local Claude Code settings
 .claude/settings.local.json
+.vercel
+.env*
