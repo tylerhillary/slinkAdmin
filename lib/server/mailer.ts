@@ -2,7 +2,7 @@ import "server-only";
 
 import nodemailer, { type Transporter } from "nodemailer";
 
-import { SENDER_EMAIL } from "@/lib/firebase/config";
+import { COMPANY_EMAIL } from "@/lib/firebase/config";
 
 /**
  * Outgoing mail, sent as the desk's own Gmail account.
@@ -17,11 +17,16 @@ import { SENDER_EMAIL } from "@/lib/firebase/config";
  *
  * ## How it is switched on
  *
- * `GMAIL_APP_PASSWORD` in the environment — a 16-character App Password from
- * the Google account (2-Step Verification must be on to create one). Without
- * it nothing is sent and the console falls back to pre-filled Gmail drafts,
- * so the desk is never stuck. `GMAIL_USER` overrides the account, defaulting
- * to the desk address.
+ * `GMAIL_APP_PASSWORD` in the environment — a 16-character App Password
+ * created on the company's own Google account, skillbank0@gmail.com
+ * (2-Step Verification must be on to create one). Without it nothing is sent
+ * and the console falls back to pre-filled Gmail drafts, so the desk is never
+ * stuck.
+ *
+ * There is deliberately no setting to send as another account. Mail always
+ * goes out as `COMPANY_EMAIL`, so a personal inbox can never become the
+ * sender or quietly collect members' replies. An App Password made on any
+ * other Google account is simply rejected by Gmail.
  *
  * ## What it deliberately does not do
  *
@@ -49,8 +54,7 @@ function credentials(): Credentials | null {
   const pass = (process.env.GMAIL_APP_PASSWORD ?? "").replace(/\s+/g, "");
   if (!pass) return null;
 
-  const user = (process.env.GMAIL_USER ?? "").trim() || SENDER_EMAIL;
-  return { user, pass };
+  return { user: COMPANY_EMAIL, pass };
 }
 
 /** Whether the server can send on its own. */
@@ -58,9 +62,9 @@ export function mailerConfigured(): boolean {
   return credentials() !== null;
 }
 
-/** The address mail goes out as, configured or not. */
+/** The address mail goes out as: always the company address. */
 export function senderAddress(): string {
-  return credentials()?.user ?? SENDER_EMAIL;
+  return COMPANY_EMAIL;
 }
 
 let cached: { key: string; transport: Transporter } | null = null;

@@ -701,7 +701,9 @@ function IntroductionPreview({
 
   const how = mailer?.configured
     ? `Connecting emails both of them from ${mailer.from}.`
-    : "Connecting prepares both introduction emails as Gmail drafts for you to send.";
+    : `Connecting prepares both introduction emails as Gmail drafts to send from ${
+        mailer?.from ?? "the company account"
+      }.`;
 
   return (
     <div className="space-y-2">
@@ -865,9 +867,14 @@ function IntroductionSection({
 
         {automatic ? null : (
           <p className="text-2xs leading-relaxed text-content-subtle">
-            Automatic sending is off. Add <code className="font-mono">GMAIL_APP_PASSWORD</code>{" "}
-            in Vercel to send straight from {mailer?.from ?? "the desk account"}; until then
-            each email opens as a finished Gmail draft.
+            Automatic sending is off, so each email opens as a finished Gmail draft. Be
+            signed in to Gmail as{" "}
+            <span className="font-medium text-content-muted">
+              {mailer?.from ?? "the company account"}
+            </span>{" "}
+            before pressing Send, so it goes out from the company address. Adding{" "}
+            <code className="font-mono">GMAIL_APP_PASSWORD</code> in Vercel sends automatically
+            instead.
           </p>
         )}
       </div>

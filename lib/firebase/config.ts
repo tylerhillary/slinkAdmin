@@ -36,8 +36,17 @@ export const COLLECTIONS = {
   mailQueue: "mailQueue",
 } as const;
 
-/** From-address stamped on queued assessment and match emails. */
-export const SENDER_EMAIL = "skillbank0@gmail.com";
+/**
+ * The company's email address.
+ *
+ * Every email the console sends goes out from this account, and every letter
+ * names it as the address to write back to. It is the address on the website,
+ * its contact page and its privacy policy. Change it here and nowhere else.
+ */
+export const COMPANY_EMAIL = "skillbank0@gmail.com";
+
+/** From-address on assessment and match emails: always the company address. */
+export const SENDER_EMAIL = COMPANY_EMAIL;
 
 /** Public learner-facing portal used in outbound email copy. */
 export const PORTAL_URL = "https://slinkquest.vercel.app";

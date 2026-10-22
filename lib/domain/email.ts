@@ -1,4 +1,4 @@
-import { PORTAL_URL, SENDER_EMAIL } from "@/lib/firebase/config";
+import { COMPANY_EMAIL, PORTAL_URL } from "@/lib/firebase/config";
 import type { Person } from "@/types";
 
 import { firstName, formatPhoneNumber, properName } from "./format";
@@ -43,7 +43,7 @@ export function buildAssessmentMailto(person: Person): string {
     "",
     "The Slink Talent Team",
     `Slink – ${PORTAL_URL}`,
-    `Email: ${SENDER_EMAIL}`,
+    `Email: ${COMPANY_EMAIL}`,
   ].join("\n");
 
   return mailto(person.email, "Complete Your Professional Assessment", body);
@@ -146,8 +146,11 @@ function detailsOf(person: Person, reach: IntroductionReach): string {
   return lines.join("\n");
 }
 
-const SUPPORT_LINE =
-  "Should you require any assistance, or if any of the information above is incorrect, please reply to this email and a member of our team will respond promptly.";
+/**
+ * Names the company address outright rather than saying "reply to this email":
+ * a draft sent from another Gmail account would otherwise collect the replies.
+ */
+const SUPPORT_LINE = `Should you require any assistance, or if any of the information above is incorrect, please write to us at ${COMPANY_EMAIL} and a member of our team will respond promptly.`;
 
 /** Included whenever a letter carries another person's contact details. */
 const CONFIDENTIALITY_NOTICE =
@@ -157,7 +160,7 @@ const SIGNATURE = [
   "Yours sincerely,",
   "",
   "The Slink Matching Team",
-  `Email: ${SENDER_EMAIL}`,
+  `Email: ${COMPANY_EMAIL}`,
   `Web: ${PORTAL_URL}`,
 ];
 
